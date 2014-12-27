@@ -29,7 +29,9 @@ Goiania, 08th of december of 2014
 
 int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, double *Ef, int *type, double *crosst, char *windtype);
 
-//void readallspl_(char *file,int *iflth,double *X,double *Y,double *T,double *bcoefRe,double *bcoefIm,double *xknot,double *yknot,double *tknot,int *nx, int *np[0], int *nf, int *kx, int *nxr, int *np[0], int *fpr, double *norm, int *prtRMSwhole, int *noreg, int *wholegrid, int *stfil);
+void readallspl(char *file,int *iflth,double *X,double *Y,double *T,double *bcoefRe,double *bcoefIm,double *xknot,double *yknot,double *tknot, int *np, int *nf, int *kx, int *stfil, char *dim);
+  
+
 
 int main(){
   int i,j,k,l,np[3],nf,nxr,nfr,xs,ys,ks,ldf,mdf,nw,nz,nwr,nzr;
@@ -164,9 +166,6 @@ int main(){
   
   printf("\nFinished input section!\n");
   printf("------------------------------------------------------\n\n\n");
-  
-
-  /*
 
   //--- Allocate arrays
   bcoefre = malloc(np[0]*np[1]*nf*sizeof(double));
@@ -184,7 +183,7 @@ int main(){
   printf("\n<< Starting reading and spline section >>\n");
   
   // eSPec output files have unitary euclidean norm, in order to renormalize it to the integral norm:
-  norm = 1.0e+0/sqrt(stepx*stepy);
+  //norm = 1.0e+0/sqrt(stepx*stepy);
   //norm = 1.0;
 
   // convert time variables from fs to au
@@ -195,7 +194,9 @@ int main(){
 
   //--- Read all wavepackets and generate spline coefficient files
   iflth = strlen(file);
-  readallspl_(file,&iflth,X,Y,T,bcoefre,bcoefim,xknot,yknot,tknot,&np[1],&np[0],&nf,&kx,&np[1],&np[0],fpr,&norm,&prtRMSwhole,&noreg,&wholegrid,&stfil);
+  readallspl_(file,&iflth,X,Y,T,bcoefre,bcoefim,xknot,yknot,tknot,np,&nf,&kx,&stfil,dim);
+
+  /*
 
   printf("\n<< Starting Fourier section >>\n");
 

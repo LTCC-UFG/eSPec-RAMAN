@@ -1,5 +1,5 @@
       subroutine readallspl(Fil,IFLTH,X,Y,T,BCOEFRe,BCOEFIm,
-     &    XKNOT,YKNOT,TKNOT,NP,nf,KX,NORM,stfil,dim)
+     &    XKNOT,YKNOT,TKNOT,NP,nf,KX,stfil,dim)
       IMPLICIT NONE
 c------------------------------------------
 c
@@ -8,14 +8,14 @@ c This routine reads a wavepacket propagation into matrices,
 c   then generates a 3D spline representation for it
 c
 c
-c     Goiania, 25th of september of 2014
+c     Goiania, 27th of december of 2014
 c     Vinicius Vaz da Cruz
 c-------------------------------------------
       INTEGER I,J,NF,K,IFLTH,LDF,MDF,stfil
       INTEGER II,JJ,KK,FPR(4),PRTRMSWHOLE,NOREG
       INTEGER NP(*),KX,WHOLEGRID
       REAL*8 X(*), Y(*), T(*)
-      REAL*8 WORK(5),NORM
+      REAL*8 WORK(5)
       REAL*8 checkRe, checkIm,DBS3VL,RMSD,RMSDRE,RMSDIM
       LOGICAL file_exists,file_open
       CHARACTER*14 wwork,wp,wo,pol
@@ -57,8 +57,8 @@ d     write(*,*)'>>',fpr(1),fpr(2),fpr(3),fpr(4)
                   READ(10,*)WORK(2),WORK(3),WORK(4)
                ENDIF
                Y(J)=WORK(2)
-               Re(J,I,K)=WORK(3)*NORM
-               Im(J,I,K)=WORK(4)*NORM
+               Re(J,I,K)=WORK(3)
+               Im(J,I,K)=WORK(4)
             ENDDO
          ENDDO
          CLOSE(10)
@@ -68,12 +68,12 @@ c---------------------end of K loop
       CALL SYSTEM_CLOCK(TEND,RATE)
       TDIFF = REAL(TEND - TBEGIN)/REAL(RATE)
      
-c      WRITE(*,*) 'the read data will be printed to files, (debug)'
-c      DO K=1,NF,1
-c         CALL FILENAME(Filen,'check_read',9,K)
-c         CALL PRTWP(Re(1:LDF,1:MDF,K),Im(1:LDF,1:MDF,K),X,Y,T(K),NXR,NYR
-c     &        ,FILEN)
-c      ENDDO
+      WRITE(*,*) 'the read data will be printed to files, (debug)'
+      DO K=1,NF,1
+         CALL FILENAME(Filen,'check_read',9,K)
+         CALL PRTWP1D(Re(1:NP(1),1,K),Im(1:NP(1),1,K),Y,T(K),NP(1)
+     &        ,FILEN)
+      ENDDO
 
       write(*,*)
       write(*,*)'All data has been read!'
@@ -138,7 +138,7 @@ c      CALL ERRORSPL(FIL,IFLTH,Re,Im,BCOEFRE,BCOEFIM,Y,X,T
 c     &    ,NYR,NXR,NF,YKNOT,XKNOT,TKNOT,KX,PRTRMSWHOLE)
 
       write(*,*)
-      write(*,*)'Finished 3D spline section!'
+      write(*,*)'Finished spline section!'
       write(*,*)'------------------------------------------------------'
       
       END
@@ -211,6 +211,20 @@ c-------------- routine to print two matrices M1(J,I) and M2(I,J) into a file
          DO J=1,NY,1
             WRITE(12,'(4ES20.10)')X(I),Y(J),M1(J,I),M2(J,I)
          ENDDO
+      ENDDO
+      CLOSE(12)
+      END
+c-------------- routine to print two matrices M1(J,I) and M2(I,J) into a file
+      SUBROUTINE PRTWP1D(M1,M2,X,T,NX,FILEN)
+      IMPLICIT NONE
+      INTEGER I,J,NX,NY,LDF,MDF
+      CHARACTER*30 FILEN
+      REAL*8 M1(*),M2(*),X(*),T
+      OPEN(unit=12,FILE=FILEN)
+
+      WRITE(12,*)'# time =',T
+      DO I=1,NX,1
+            WRITE(12,'(4ES20.10)')X(I),M1(I),M2(I)
       ENDDO
       CLOSE(12)
       END

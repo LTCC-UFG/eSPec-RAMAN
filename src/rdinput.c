@@ -3,7 +3,7 @@
 #include<math.h>
 #include<string.h>
 
-int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, double *Ef, int *type, double *crosst){
+int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, double *Ef, int *type, double *crosst,char *windtype){
   int i,j,k,spl;
   int NXG,NYG,jcheck1,jcheck2;
   char workk[50],coment[150],typenam[20];
@@ -68,8 +68,10 @@ int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, doubl
 	if(strncasecmp(workk,"crossterm",9)==0)fscanf(arq, "%lf", crosst);
 	if(strncasecmp(workk,"finalenergy",11)==0)fscanf(arq, "%lf", Ef);
 	if(strncasecmp(workk,"Fourier",7)==0)fscanf(arq,"%d",twopow);
-	if(strncasecmp(workk,"Window",6)==0)fscanf(arq,"%lf",width);
-	
+	if(strncasecmp(workk,"Window",6)==0){
+	  fscanf(arq,"%s",windtype);
+	  fscanf(arq,"%lf",width);
+	}	
       }
     }
     //PRINT INPUT GROUP

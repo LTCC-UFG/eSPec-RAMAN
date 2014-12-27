@@ -1,5 +1,5 @@
       subroutine readallspl(Fil,IFLTH,X,Y,T,BCOEFRe,BCOEFIm,
-     &    XKNOT,YKNOT,TKNOT,nx,ny,nf,KX,NORM,stfil,dim)
+     &    XKNOT,YKNOT,TKNOT,NP,nf,KX,NORM,stfil,dim)
       IMPLICIT NONE
 c------------------------------------------
 c
@@ -11,9 +11,9 @@ c
 c     Goiania, 25th of september of 2014
 c     Vinicius Vaz da Cruz
 c-------------------------------------------
-      INTEGER I,J,NX,NY,NF,K,IFLTH,LDF,MDF,stfil
+      INTEGER I,J,NF,K,IFLTH,LDF,MDF,stfil
       INTEGER II,JJ,KK,FPR(4),PRTRMSWHOLE,NOREG
-      INTEGER NXR,NYR,NNX,NNY,KX,WHOLEGRID
+      INTEGER NP(*),KX,WHOLEGRID
       REAL*8 X(*), Y(*), T(*)
       REAL*8 WORK(5),NORM
       REAL*8 checkRe, checkIm,DBS3VL,RMSD,RMSDRE,RMSDIM
@@ -23,8 +23,8 @@ c-------------------------------------------
       CHARACTER*30 Fil, Filen
 c--- 3D SPLINE PARAMETERS
       REAL*8 TKNOT(*), YKNOT(*), XKNOT(*)
-      REAL*8 Re(NYR,NXR,NF),Im(NYR,NXR,NF)
-      REAL*8 BCOEFRe(NYR,NXR,NF),BCOEFIm(NYR,NXR,NF)
+      REAL*8 Re(NP(1),NP(2),NF),Im(NP(1),NP(2),NF)
+      REAL*8 BCOEFRe(NP(1),NP(2),NF),BCOEFIm(NP(1),NP(2),NF)
 c      REAL*8 BCOEFRe(LDF,MDF,*),BCOEFIm(LDF,MDF,*)
 c----
       INTEGER TBEGIN,TEND
@@ -118,10 +118,10 @@ c     write(*,*) 'imaginary part'
      &        KX,KX,KX,YKNOT,XKNOT,TKNOT,BCOEFIM)
       ELSE
 c     write(*,*) 'real part'
-         CALL DBS2IN(NYR,Y,NF,T,Re,NP(1),
+         CALL DBS2IN(NP(1),Y,NF,T,Re,NP(1),
      &        KX,KX,YKNOT,TKNOT,BCOEFRe)
 c     write(*,*) 'imaginary part'
-         CALL DBS2IN(NYR,Y,NF,T,Im,NP(1),
+         CALL DBS2IN(NP(1),Y,NF,T,Im,NP(1),
      &        KX,KX,YKNOT,TKNOT,BCOEFIM)  
       ENDIF
 

@@ -31,7 +31,7 @@ Goiania, 08th of december of 2014
 #define Me    9.10938188E-31 //mass of electron in Kg
 #define FSAU(x) (x)*41.3413745758e+0 ///0.024189E+0 //fs to au units of time conversion                        mtrxdiag_ (char *dim, int *il, int *iu, int *info, int *mxdct, int *n, double *abstol, int *iwork, int *np, double *eigvl, double *shm, double *vpot, double *work, double *wk, double *eigvc);
 
-int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, double *Ef, int *type, double *crosst);
+int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, double *Ef, int *type, double *crosst, char *windtype);
 
 //void readallspl_(char *file,int *iflth,double *X,double *Y,double *T,double *bcoefRe,double *bcoefIm,double *xknot,double *yknot,double *tknot,int *nx, int *np[0], int *nf, int *kx, int *nxr, int *np[0], int *fpr, double *norm, int *prtRMSwhole, int *noreg, int *wholegrid, int *stfil);
 
@@ -43,7 +43,7 @@ int main(){
   double ti,tf,pti,ptf,pstept,xi,xf,yi,yf,stept,sh[3],width,potshift,maxF[2],maxaE[2],stepw,stepz;
   double *X,*Y,*T,rmse,xwork,*W,*Z,mem;
   double m[3],x,y,pk,pki,pkf,steppk,ansk,val[5];
-  char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6];
+  char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10];
   FILE *arq=fopen("raman.inp","r");
   FILE *deb=fopen("debug.dat","w");
   //--- spline variables
@@ -73,7 +73,8 @@ int main(){
   twopow=9; //11;
   width = 1.0e-9;
   kx=6.0e+0;
-  prtwpE=1; // =0 to print transformed wp into files -> NEED TO ADD TO rdinput
+  strcpy(windtype,"no input");
+  prtwpE=1;       // =0 to print transformed wp into files -> NEED TO ADD TO rdinput
   prtRMSwhole=1; // = 0 to compute RMSE in relation to whole data -> NEED TO ADD TO rdinput
 
   //-------------------------------------------------//
@@ -86,7 +87,7 @@ int main(){
   printf("Reading input parameters...\n\n");
 
   //--- Read Input File
-  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&Ef,&type,&crosst);
+  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&Ef,&type,&crosst,windtype);
   fclose(arq);
   //-----
 
@@ -150,9 +151,19 @@ int main(){
   nE = NTG;
   printf("Energy step = %E a.u., Ef = %E a.u. \n\n",stepE,-Ei);
 
+  if(strncasecmp(windtype,".SGAUSS",7)==0){
+    printf("Super gaussian window function will be applied\n");
+    printf("width = %E \n",width);
+  }else if(strncasecmp(windtype,".EXPDEC",7)==0){
+    printf("Lifetime exponential decayment will be used as a window function \n");
+    printf("intermediate state lifetime = %E eV\n",width);
+  }else{
+    printf("invalid fourier transform window chosen\n error: %s \n",windtype);
+    return 666;
+  }
 
   mem = (4.0*(np[0]*np[1]*nf*sizeof(double))/(1024*1024*1024) + 2*(np[0]+np[1]+nf+NTG)*sizeof(double) + 2.0*(np[1]*np[0]*NTG*sizeof(double)))/(1024*1024*1024);
-  printf("Memory requirement estimation: %E GB\n",mem);
+  printf("\nMemory requirement estimation: %E GB\n",mem);
   
   
   printf("\nFinished input section!\n");

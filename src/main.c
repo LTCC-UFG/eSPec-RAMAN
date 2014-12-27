@@ -6,10 +6,6 @@
 #include<string.h>
 
 #include "splinesurf.h"
-#include "jacobi.h"
-#include "Jflux.h"
-#include "readf.h"
-#include "morse_vib.h"
 #include "fourier.h"
 
 /*

@@ -118,11 +118,11 @@ c     write(*,*) 'imaginary part'
      &        KX,KX,KX,YKNOT,XKNOT,TKNOT,BCOEFIM)
       ELSE
 c     write(*,*) 'real part'
-         CALL DBS2IN(NP(1),Y,NF,T,Re,NP(1),
-     &        KX,KX,YKNOT,TKNOT,BCOEFRe)
+         CALL DBS2IN(NP(1),Y,NF,T,Re(1:NP(1),1,1:NF),NP(1),
+     &        KX,KX,YKNOT,TKNOT,BCOEFRe(1:NP(1),1,1:NF))
 c     write(*,*) 'imaginary part'
-         CALL DBS2IN(NP(1),Y,NF,T,Im,NP(1),
-     &        KX,KX,YKNOT,TKNOT,BCOEFIM)  
+         CALL DBS2IN(NP(1),Y,NF,T,Im(1:NP(1),1,1:NF),NP(1),
+     &        KX,KX,YKNOT,TKNOT,BCOEFIM(1:NP(1),1,1:NF))  
       ENDIF
 
       CALL SYSTEM_CLOCK(TEND,RATE)

@@ -1,13 +1,13 @@
       subroutine readallspl(Fil,IFLTH,X,Y,T,BCOEFRe,BCOEFIm,
-     &    XKNOT,YKNOT,TKNOT,NP,nf,KX,stfil,dim)
+     &     XKNOT,YKNOT,TKNOT,NP,nf,KX,stfil,dim)
       IMPLICIT NONE
 c------------------------------------------
-c
-c Purpose:
-c This routine reads a wavepacket propagation into matrices,
-c   then generates a 3D spline representation for it
-c
-c
+c     
+c     Purpose:
+c     This routine reads a wavepacket propagation into matrices,
+c     then generates a 3D spline representation for it
+c     
+c     
 c     Goiania, 27th of december of 2014
 c     Vinicius Vaz da Cruz
 c-------------------------------------------
@@ -15,18 +15,18 @@ c-------------------------------------------
       INTEGER II,JJ,KK,FPR(4),PRTRMSWHOLE,NOREG
       INTEGER NP(*),KX,WHOLEGRID
       REAL*8 X(*), Y(*), T(*)
-      REAL*8 WORK(5)
-      REAL*8 checkRe, checkIm,DBS3VL,RMSD,RMSDRE,RMSDIM
+      REAL*8 WORK(5),MAXERR(2),RMSERR(2)
+      REAL*8 checkRe, checkIm,DBS3VL,RMSD,RMSDRE,RMSDIM,RMSD1D
       LOGICAL file_exists,file_open
       CHARACTER*14 wwork,wp,wo,pol
       CHARACTER*6 DIM
       CHARACTER*30 Fil, Filen
-c--- 3D SPLINE PARAMETERS
+c---  3D SPLINE PARAMETERS
       REAL*8 TKNOT(*), YKNOT(*), XKNOT(*)
       REAL*8 Re(NP(1),NP(2),NF),Im(NP(1),NP(2),NF)
       REAL*8 BCOEFRe(NP(1),NP(2),NF),BCOEFIm(NP(1),NP(2),NF)
-c      REAL*8 BCOEFRe(LDF,MDF,*),BCOEFIm(LDF,MDF,*)
-c----
+c     REAL*8 BCOEFRe(LDF,MDF,*),BCOEFIm(LDF,MDF,*)
+c---- 
       INTEGER TBEGIN,TEND
       REAL*8 RATE,TDIFF
 
@@ -67,13 +67,13 @@ c---------------------end of K loop
 
       CALL SYSTEM_CLOCK(TEND,RATE)
       TDIFF = REAL(TEND - TBEGIN)/REAL(RATE)
-     
-      WRITE(*,*) 'the read data will be printed to files, (debug)'
-      DO K=1,NF,1
-         CALL FILENAME(Filen,'check_read',9,K)
-         CALL PRTWP1D(Re(1:NP(1),1,K),Im(1:NP(1),1,K),Y,T(K),NP(1)
-     &        ,FILEN)
-      ENDDO
+      
+c     WRITE(*,*) 'the read data will be printed to files, (debug)'
+c     DO K=1,NF,1
+c     CALL FILENAME(Filen,'check_read',9,K)
+c     CALL PRTWP1D(Re(1:NP(1),1,K),Im(1:NP(1),1,K),Y,T(K),NP(1)
+c     &        ,FILEN)
+c     ENDDO
 
       write(*,*)
       write(*,*)'All data has been read!'
@@ -88,27 +88,27 @@ c--------spline procedure
       write(*,*)
       
       CALL SYSTEM_CLOCK(TBEGIN,RATE)
-d      WRITE(*,*)'sizes', NXR,NYR,NF
-d      WRITE(*,*)'sizes', SIZE(X),SIZE(Y),SIZE(T)
-   
+d     WRITE(*,*)'sizes', NXR,NYR,NF
+d     WRITE(*,*)'sizes', SIZE(X),SIZE(Y),SIZE(T)
+      
       CALL DBSNAK(NP(1), Y, KX, YKNOT)
       IF(DIM(1:3).EQ.'.2D') CALL DBSNAK(NP(2), X, KX, XKNOT)
       CALL DBSNAK(NF, T, KX, TKNOT)
 
-d      DO I =1, NYR,1
-d         write(1,*) Y(I)
-d      ENDDO
-d      write(1,*)
-d      DO I =1, NXR,1
-d         write(1,*) X(I)
-d      ENDDO
-d      write(1,*)
-d      DO I =1, NF,1
-d         write(1,*) T(I)
-d      ENDDO
+d     DO I =1, NYR,1
+d     write(1,*) Y(I)
+d     ENDDO
+d     write(1,*)
+d     DO I =1, NXR,1
+d     write(1,*) X(I)
+d     ENDDO
+d     write(1,*)
+d     DO I =1, NF,1
+d     write(1,*) T(I)
+d     ENDDO
 
       
-         
+      
       IF(DIM(1:3).EQ.'.2D')THEN
 c     write(*,*) 'real part'
          CALL DBS3IN(NP(1),Y,NP(2),X,NF,T,Re,NP(1),NP(2),
@@ -129,13 +129,33 @@ c     write(*,*) 'imaginary part'
       TDIFF = REAL(TEND - TBEGIN)/REAL(RATE)
 
       write(*,*)
-      write(*,*)'3D spline matrices calculated!'
+      write(*,*)'spline matrices calculated!'
       write(*,'(A9,F12.5,A10)') 'it took ',TDIFF, 'seconds.'
       write(*,*)
-c      write(*,*)'estimating error in interpolation:'
-c      write(*,*)
-c      CALL ERRORSPL(FIL,IFLTH,Re,Im,BCOEFRE,BCOEFIM,Y,X,T
+      write(*,*)'estimating error in interpolation:'
+      write(*,*)
+c     CALL ERRORSPL(FIL,IFLTH,Re,Im,BCOEFRE,BCOEFIM,Y,X,T
 c     &    ,NYR,NXR,NF,YKNOT,XKNOT,TKNOT,KX,PRTRMSWHOLE)
+      
+      IF(DIM(1:3).EQ.'.1D')THEN
+      RMSERR(1)=RMSD1D(Re(1:NP(1),1,1),BCOEFRe(1:NP(1),1,1:NF),Y,T,YKNOT
+     &     ,TKNOT,KX,NP(1),NF,MAXERR(1))
+      RMSERR(2)=RMSD1D(Im(1:NP(1),1,1),BCOEFIm(1:NP(1),1,1:NF),Y,T,YKNOT
+     &     ,TKNOT,KX,NP(1),NF,MAXERR(2))
+      write(*,'(A35,I4,X2 2ES17.10)')'Root mean square errors 
+     &for file',1,RMSERR(1),RMSERR(2)
+      write(*,'(A35,I4,X2 2ES17.10)')'maximum error for file',
+     &     1,MAXERR(1),MAXERR(2)
+cccc------------
+      RMSERR(1)=RMSD1D(Re(1:NP(1),1,100),BCOEFRe(1:NP(1),1,1:NF),Y,
+     &     T(100),YKNOT,TKNOT,KX,NP(1),NF,MAXERR(1))
+      RMSERR(2)=RMSD1D(Im(1:NP(1),1,100),BCOEFIm(1:NP(1),1,1:NF),Y,
+     &     T(100),YKNOT,TKNOT,KX,NP(1),NF,MAXERR(2))
+      write(*,'(A35,I4,X2 2ES17.10)')'Root mean square errors 
+     &for file',100,RMSERR(1),RMSERR(2)
+      write(*,'(A35,I4,X2 2ES17.10)')'maximum error for file',
+     &     100,MAXERR(1),MAXERR(2)
+      ENDIF
 
       write(*,*)
       write(*,*)'Finished spline section!'
@@ -387,4 +407,35 @@ C   this was just to check whether the c pointer was being properly arranged int
          ENDDO
       ENDDO
 
+      END
+
+
+c------------------ routine to compute the root mean square between
+c------------------ the original data and its spline representation
+c------------------ 1D wavepackets
+      FUNCTION RMSD1D(M,MBCOEF,Y,T,YKNOT,TKNOT,
+     &     KX,NYR,NF,ERRMAX)
+      IMPLICIT NONE
+      INTEGER I,J,NT,KX,KY,KZ
+      INTEGER NXR,NYR,NF
+      REAL*8 VAR,RMSD1D,MSPL,M(*),ERRMAX
+      REAL*8 Y(*),T,YKNOT(*),TKNOT(*)
+      REAL*8 MBCOEF(NYR,*),DBS2VL,VAL
+      
+      NT=NYR
+      VAR = 0.0D+0
+      ERRMAX = 0.0D+0
+      
+      DO J=1,NYR,1
+         MSPL=dbs2vl(Y(J),T,kx,kx,
+     &        yknot,tknot,nyr,nf,mbcoef)
+         VAL = (M(J) - MSPL)**2 
+d     write(1,'(5ES27.15)')X(I),Y(J),M(J,I),MSPL,VAL
+         IF(DSQRT(VAL).GT.ERRMAX) ERRMAX=DSQRT(VAL/(NT*1.0D+0))
+         VAR = VAR + VAL
+      ENDDO
+
+      RMSD1D = DSQRT(VAR/(NT*1.0D+0))
+
+      RETURN
       END

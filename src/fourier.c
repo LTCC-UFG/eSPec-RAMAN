@@ -2,41 +2,10 @@
 #include<stdlib.h>
 #include<math.h>
 #include<fftw3.h>
+#include<string.h>
 
 #include "splinesurf.h"
 #define one 1.0E+0
-
-/*
-  gendata:
-  this routine generates a full data set from its [0,tf] spline representation, then mirrors it back to [-tf,0].
-  it is also applied a gaussian window to the data set, according to the width input value.
-  the main purpose is to prepare the data for fourier transform.
-  the type variable should be 1 for even functions f(-x)=f(x) and 2 for odd functions f(-x)=-f(x).
- */
-
-int gendata(double *work, double *bcoef, double *xknot, double *yknot, double *tknot, int nxr, int nyr, int nf, double x, double y, double tf, double steptspl, int NTG, double width, int type){
-  int i,j,nt,korder;
-  double t,val,window,taux;
-  korder = 3.0;
-  
-  taux = pow(tf,2)/(log(one/width)/log(M_E));
-
-  for(i=0;i<NTG;i++){
-    t = -tf + i*steptspl;
-    window = exp(-pow(t,2)/taux);
-
-    if(type==1 || (type==2 && t>0.00e+0) ){
-      t = fabs(t);
-      work[i] = window*dbs3vl_ (&y,&x,&t,&korder,&korder,&korder,yknot,xknot,tknot,&nyr,&nxr,&nf,bcoef);
-    }else if(type==2 && t<0.00e+0){
-      t = fabs(t);
-      work[i] = -window*dbs3vl_ (&y,&x,&t,&korder,&korder,&korder,yknot,xknot,tknot,&nyr,&nxr,&nf,bcoef);
-    }
-
-  }
-
-}
-
 
 /*
   gendata_complex:
@@ -46,20 +15,28 @@ int gendata(double *work, double *bcoef, double *xknot, double *yknot, double *t
   the main purpose is to prepare the data for fourier transform.
  */
 
-int gendata_complex(fftw_complex *work, double *bcoefre, double *bcoefim, double *xknot, double *yknot, double *tknot, int kx, int nxr, int nyr, int nf, double x, double y, double ti,double tf, double steptspl, int NTG, double width, double tmax){
+int gendata_complex(fftw_complex *work, double *bcoefre, double *bcoefim, double *xknot, double *yknot, double *tknot, int kx, int nxr, int nyr, int nf, double x, double y, double ti,double tf, double steptspl, int NTG, double width, char *windtype, char *dim){
   int i,j,nt,m;
   double t,val,window,taux;
   //FILE *wind=fopen("window.dat","w");
-
-  taux = pow(tf,2)/(log(one/width)/log(M_E));
+  FILE *spl=fopen("spl-debug.dat","w");
 
   for(i=0;i<NTG;i++){
     t = -tf + i*steptspl;
-    window = exp(-pow((t - tmax),2)/taux);
-    window = 1.000;
+    if(strncasecmp(windtype,".SGAUSS",7)==0){
+      taux = pow(tf,2)/(log(one/width)/log(M_E));
+      window = exp(-pow(t,2)/taux);
+    }else if(strncasecmp(windtype,".EXPDEC",7)==0) window = exp(-width*t);
+
     t = fabs(t);
-    work[i][0] = window*dbs3vl_ (&y,&x,&t,&kx,&kx,&kx,yknot,xknot,tknot,&nyr,&nxr,&nf,bcoefre);
-    work[i][1] = window*dbs3vl_ (&y,&x,&t,&kx,&kx,&kx,yknot,xknot,tknot,&nyr,&nxr,&nf,bcoefim);
+    if(strncasecmp(dim,".2D",3)==0){
+      work[i][0] = window*dbs3vl_ (&y,&x,&t,&kx,&kx,&kx,yknot,xknot,tknot,&nyr,&nxr,&nf,bcoefre);
+      work[i][1] = window*dbs3vl_ (&y,&x,&t,&kx,&kx,&kx,yknot,xknot,tknot,&nyr,&nxr,&nf,bcoefim);
+    }else if(strncasecmp(dim,".1D",3)==0){
+      work[i][0] = window*dbs2vl_ (&y,&t,&kx,&kx,yknot,tknot,&nyr,&nf,bcoefre);
+      work[i][1] = window*dbs2vl_ (&y,&t,&kx,&kx,yknot,tknot,&nyr,&nf,bcoefim);
+    }
+
   }
 }
 
@@ -94,7 +71,7 @@ int center_fft(fftw_complex *out,int N){
   main output: WPERe, WPEIm. real and complex part vectors of |f(x,y,E)>
 
  */
-int run_all_fft(double *bcoefre,double *bcoefim, double *X, double *Y,double *xknot, double *yknot, double *tknot, int kx,double ti,double tf,double steptspl,int nxr,int nyr,int nf,int NTG, int *fpr, double width,double *WPERe,double *WPEIm, double tmax){
+int run_all_fft(double *bcoefre,double *bcoefim, double *X, double *Y,double *xknot, double *yknot, double *tknot, int kx,double ti,double tf,double steptspl,int nxr,int nyr,int nf,int NTG, int *fpr, double width,double *WPERe,double *WPEIm, char *windtype, char *dim){
   int i,j,l,ll,k,nE;
   double x,y,E,ke,norm,stepxspl;
   fftw_complex *workin,*workout;
@@ -116,10 +93,10 @@ int run_all_fft(double *bcoefre,double *bcoefim, double *X, double *Y,double *xk
   for(i=0;i<nxr;i++){
     for(j=0;j<nyr;j++){
       //generates data set from spline coeff.
-      gendata_complex(workin,bcoefre,bcoefim,xknot,yknot,tknot,kx,nxr,nyr,nf,X[i],Y[j],ti,tf,steptspl,NTG,width,tmax);
+      gendata_complex(workin,bcoefre,bcoefim,xknot,yknot,tknot,kx,nxr,nyr,nf,X[i],Y[j],ti,tf,steptspl,NTG,width,windtype,dim);
 
       //centers t=0 at the zero frequency position of the fft input vector(first) due to periodicity requirement of fft
-      //center_fft(workin,NTG);
+      center_fft(workin,NTG);
 
       //--- do forward fft
       // FFTW_BACKWARD -> sign in the exponent = 1.
@@ -133,8 +110,7 @@ int run_all_fft(double *bcoefre,double *bcoefim, double *X, double *Y,double *xk
       if(i==5 && j==26){
 	//center_fft(workin,NTG);
 	fprintf(filin,"# %E %E\n",X[i],Y[j]);
-	//for(k=0;k<NTG;k++)fprintf(filin,"%E %E %E\n",-tf + k*steptspl,workin[k][0],workin[k][1]);
-	for(k=0;k<NTG;k++)fprintf(filin,"%E %E %E\n",k*steptspl,workin[k][0],workin[k][1]);
+	for(k=0;k<NTG;k++)fprintf(filin,"%E %E %E\n",-tf + k*steptspl,workin[k][0],workin[k][1]);
 	fprintf(filout,"# %E %E\n",X[i],Y[j]);
 	//for(k=0;k<NTG;k++)fprintf(filout,"%E %E %E\n",Ei + k*stepE,steptspl*workout[k][0],steptspl*workout[k][1]);
 	for(k=0;k<NTG;k++)fprintf(filout,"%E %E %E\n",Ei + k*stepE,(1.0/sqrt(2*M_PI))*steptspl*workout[k][0],(1.0/sqrt(2*M_PI))*steptspl*workout[k][1]);
@@ -147,8 +123,10 @@ int run_all_fft(double *bcoefre,double *bcoefim, double *X, double *Y,double *xk
 	ll = j + i*nyr + l*nxr*nyr;
 	//printf("%d %d %d -> %d \n",j,i,k,ll);
 	//fprintf(fil," %E %E %E\n",Ei + l*stepE,steptspl*workout[l][0],steptspl*workout[l][1]);
-	WPERe[ll] = (1.0/sqrt(2*M_PI))*steptspl*workout[l][0];
-	WPEIm[ll] = (1.0/sqrt(2*M_PI))*steptspl*workout[l][1];
+	//WPERe[ll] = (1.0/sqrt(2*M_PI))*steptspl*workout[l][0];
+	//WPEIm[ll] = (1.0/sqrt(2*M_PI))*steptspl*workout[l][1];
+	WPERe[ll] = steptspl*workout[l][0];
+	WPEIm[ll] = steptspl*workout[l][1];
       }
       //fprintf(fil,"\n");
     }
@@ -291,3 +269,23 @@ int gendata_complex(fftw_complex *work, double *bcoefre, double *bcoefim, double
 
 
  */
+
+void checkspl1d(double *Y,double *T,double *bcoefre, double *bcoefim, double *xknot,double *yknot,double *tknot,int *np,int nf,int kx){
+  int i,j,k;
+  double val[2];
+  FILE *spl;
+  char fnam[20];
+
+  for(k=0;k<nf;k++){
+    sprintf(fnam,"spl_%d.dat",k+1);
+    printf("opening file %s \n",fnam);
+    spl = fopen(fnam,"w");
+    for(j=0;j<np[0];j++){
+      val[0] = dbs2vl_ (&Y[j],&T[k],&kx,&kx,yknot,tknot,&np[0],&nf,bcoefre);
+      val[1] = dbs2vl_ (&Y[j],&T[k],&kx,&kx,yknot,tknot,&np[0],&nf,bcoefim);
+      fprintf(spl,"%E %E %E \n",Y[j],val[0],val[1]);
+    }
+    fclose(spl);
+  }
+  
+}

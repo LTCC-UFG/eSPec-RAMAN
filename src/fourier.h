@@ -4,9 +4,9 @@
 #include<fftw3.h>
 
 
-int run_all_fft(double *bcoefre,double *bcoefim, double *X, double *Y, double *xknot, double *yknot, double *tknot,int kx,double ti,double tf,double steptspl,int nxr,int nyr,int nf,int NTG, int *fpr, double width, double *WPERe,double *WPEIm, double tmax);
+int run_all_fft(double *bcoefre,double *bcoefim, double *X, double *Y, double *xknot, double *yknot, double *tknot,int kx,double ti,double tf,double steptspl,int nxr,int nyr,int nf,int NTG, int *fpr, double width, double *WPERe,double *WPEIm, char *windtype, char *dim);
 
-int gendata_complex(fftw_complex *work, double *bcoefre, double *bcoefim, double *xknot, double *yknot, double *tknot, int kx, int nxr, int nyr, int nf, double x, double y, double ti,double tf, double steptspl, int NTG, double width, double tmax);
+int gendata_complex(fftw_complex *work, double *bcoefre, double *bcoefim, double *xknot, double *yknot, double *tknot, int kx, int nxr, int nyr, int nf, double x, double y, double ti,double tf, double steptspl, int NTG, double width, char *windtype, char *dim);
 
 int run_fftw(fftw_complex *in, fftw_complex *out, int N);
 
@@ -22,3 +22,4 @@ int print_bcoef(double *bcoefre, double *bcoefim, int nx,int ny,int nz,char *fil
 
 double gausswp_k(double k, double k0, double hwhm);
 
+void checkspl1d(double *Y,double *T,double *bcoefre, double *bcoefim, double *xknot,double *yknot,double *tknot,int *np,int nf,int kx);

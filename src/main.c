@@ -101,8 +101,8 @@ int main(){
 
   //NTG = pow(2,twopow+1);
   NTG = pow(2,twopow);
-  //steptspl=(2.0*tf)/(NTG); //-1.0e+0);
-  steptspl=(tf - ti)/(NTG);
+  steptspl=(2.0*tf)/NTG; //-1.0e+0);
+  //steptspl=(tf - ti)/(NTG);
   //--- spline parameters determination 
 
 
@@ -185,7 +185,7 @@ int main(){
   // eSPec output files have unitary euclidean norm, in order to renormalize it to the integral norm:
   //norm = 1.0e+0/sqrt(stepx*stepy);
   //norm = 1.0;
-
+ 
   // convert time variables from fs to au
   ti = FSAU(ti);
   tf = FSAU(tf);
@@ -196,12 +196,15 @@ int main(){
   iflth = strlen(file);
   readallspl_(file,&iflth,X,Y,T,bcoefre,bcoefim,xknot,yknot,tknot,np,&nf,&kx,&stfil,dim);
 
-  /*
+  //------  spline debug
+  //checkspl1d(Y,T,bcoefre,bcoefim,xknot,yknot,tknot,np,nf,kx);
+  //------  
+ 
 
   printf("\n<< Starting Fourier section >>\n");
 
   begint = clock();
-  ftinfo=run_all_fft(bcoefre,bcoefim,X,Y,xknot,yknot,tknot,kx,ti,tf,steptspl,np[1],np[0],nf,NTG,fpr,width,WPERe,WPEIm,maxF[0]);
+  ftinfo=run_all_fft(bcoefre,bcoefim,X,Y,xknot,yknot,tknot,kx,ti,tf,steptspl,np[1],np[0],nf,NTG,fpr,width,WPERe,WPEIm,windtype,dim);
   endt = clock();
   timediff = (double)(endt - begint)/CLOCKS_PER_SEC;
 
@@ -216,6 +219,7 @@ int main(){
   printf("\n Wavepacket has been trasformed to the Energy domain!\n");
   printf("\n it took %lf seconds \n",timediff);
 
+  /*
 
    //checkmatrix_ (WPERe,WPEIm,&np[1],&np[0],&nE,X,Y,E);
 

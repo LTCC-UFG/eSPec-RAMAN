@@ -15,11 +15,10 @@
   the main purpose is to prepare the data for fourier transform.
  */
 
-int gendata_complex(fftw_complex *work, double *bcoefre, double *bcoefim, double *xknot, double *yknot, double *tknot, int kx, int nxr, int nyr, int nf, double x, double y, double ti,double tf, double steptspl, int NTG, double width, char *windtype, char *dim){
+int gendata_complex(fftw_complex *work, double *bcoefre, double *bcoefim, double *xknot, double *yknot, double *tknot, int kx, int *np, int nf, double x, double y, double ti,double tf, double steptspl, int NTG, double width, char *windtype, char *dim){
   int i,j,nt,m;
   double t,val,window,taux;
   //FILE *wind=fopen("window.dat","w");
-  FILE *spl=fopen("spl-debug.dat","w");
 
   for(i=0;i<NTG;i++){
     t = -tf + i*steptspl;
@@ -30,11 +29,11 @@ int gendata_complex(fftw_complex *work, double *bcoefre, double *bcoefim, double
 
     t = fabs(t);
     if(strncasecmp(dim,".2D",3)==0){
-      work[i][0] = window*dbs3vl_ (&y,&x,&t,&kx,&kx,&kx,yknot,xknot,tknot,&nyr,&nxr,&nf,bcoefre);
-      work[i][1] = window*dbs3vl_ (&y,&x,&t,&kx,&kx,&kx,yknot,xknot,tknot,&nyr,&nxr,&nf,bcoefim);
+      work[i][0] = window*dbs3vl_ (&y,&x,&t,&kx,&kx,&kx,yknot,xknot,tknot,&np[0],&np[1],&nf,bcoefre);
+      work[i][1] = window*dbs3vl_ (&y,&x,&t,&kx,&kx,&kx,yknot,xknot,tknot,&np[0],&np[1],&nf,bcoefim);
     }else if(strncasecmp(dim,".1D",3)==0){
-      work[i][0] = window*dbs2vl_ (&y,&t,&kx,&kx,yknot,tknot,&nyr,&nf,bcoefre);
-      work[i][1] = window*dbs2vl_ (&y,&t,&kx,&kx,yknot,tknot,&nyr,&nf,bcoefim);
+      work[i][0] = window*dbs2vl_ (&y,&t,&kx,&kx,yknot,tknot,&np[0],&nf,bcoefre);
+      work[i][1] = window*dbs2vl_ (&y,&t,&kx,&kx,yknot,tknot,&np[0],&nf,bcoefim);
     }
 
   }
@@ -71,7 +70,7 @@ int center_fft(fftw_complex *out,int N){
   main output: WPERe, WPEIm. real and complex part vectors of |f(x,y,E)>
 
  */
-int run_all_fft(double *bcoefre,double *bcoefim, double *X, double *Y,double *xknot, double *yknot, double *tknot, int kx,double ti,double tf,double steptspl,int nxr,int nyr,int nf,int NTG, int *fpr, double width,double *WPERe,double *WPEIm, char *windtype, char *dim){
+int run_all_fft(double *bcoefre,double *bcoefim, double *X, double *Y,double *xknot, double *yknot, double *tknot, int kx,double ti,double tf,double steptspl,int *np,int nf,int NTG, double width,double *WPERe,double *WPEIm, char *windtype, char *dim){
   int i,j,l,ll,k,nE;
   double x,y,E,ke,norm,stepxspl;
   fftw_complex *workin,*workout;
@@ -90,10 +89,10 @@ int run_all_fft(double *bcoefre,double *bcoefim, double *X, double *Y,double *xk
   workout = fftw_malloc(sizeof(fftw_complex) * NTG);
 
 
-  for(i=0;i<nxr;i++){
-    for(j=0;j<nyr;j++){
+  for(i=0;i<np[1];i++){
+    for(j=0;j<np[0];j++){
       //generates data set from spline coeff.
-      gendata_complex(workin,bcoefre,bcoefim,xknot,yknot,tknot,kx,nxr,nyr,nf,X[i],Y[j],ti,tf,steptspl,NTG,width,windtype,dim);
+      gendata_complex(workin,bcoefre,bcoefim,xknot,yknot,tknot,kx,np,nf,X[i],Y[j],ti,tf,steptspl,NTG,width,windtype,dim);
 
       //centers t=0 at the zero frequency position of the fft input vector(first) due to periodicity requirement of fft
       center_fft(workin,NTG);
@@ -120,7 +119,7 @@ int run_all_fft(double *bcoefre,double *bcoefim, double *X, double *Y,double *xk
       //copies fft results to permanent array
       for(l=0;l<NTG;l++){ 
 	//result of discrete FT must be multiplied by the time step (see num. recipes)
-	ll = j + i*nyr + l*nxr*nyr;
+	ll = j + i*np[0] + l*np[1]*np[0];
 	//printf("%d %d %d -> %d \n",j,i,k,ll);
 	//fprintf(fil," %E %E %E\n",Ei + l*stepE,steptspl*workout[l][0],steptspl*workout[l][1]);
 	//WPERe[ll] = (1.0/sqrt(2*M_PI))*steptspl*workout[l][0];

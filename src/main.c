@@ -27,7 +27,7 @@ Goiania, 08th of december of 2014
 #define Me    9.10938188E-31 //mass of electron in Kg
 #define FSAU(x) (x)*41.3413745758e+0 ///0.024189E+0 //fs to au units of time conversion                        mtrxdiag_ (char *dim, int *il, int *iu, int *info, int *mxdct, int *n, double *abstol, int *iwork, int *np, double *eigvl, double *shm, double *vpot, double *work, double *wk, double *eigvc);
 
-int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, double *Ef, int *type, double *crosst, char *windtype);
+int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst, char *windtype);
 
 void readallspl(char *file,int *iflth,double *X,double *Y,double *T,double *bcoefRe,double *bcoefIm,double *xknot,double *yknot,double *tknot, int *np, int *nf, int *kx, int *stfil, char *dim);
   
@@ -35,13 +35,13 @@ void readallspl(char *file,int *iflth,double *X,double *Y,double *T,double *bcoe
 
 int main(){
   int i,j,k,l,np[3],nf,nxr,nfr,xs,ys,ks,ldf,mdf,nw,nz,nwr,nzr;
-  int fp[10],fpr[10],stfil,endfil,iflth,nrmse,type,noreg;
+  int fp[10],fpr[10],stfil,endfil,iflth,nrmse,type,noreg,nEf;
   int wholegrid,twopow,prtwpE,prtRMSwhole;
   double norm;
   double ti,tf,pti,ptf,pstept,xi,xf,yi,yf,stept,sh[3],width,potshift,maxF[2],maxaE[2],stepw,stepz;
   double *X,*Y,*T,rmse,xwork,*W,*Z,mem;
   double m[3],x,y,pk,pki,pkf,steppk,ansk,val[5];
-  char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10];
+  char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10],fnam[20];
   FILE *arq=fopen("raman.inp","r");
   FILE *deb=fopen("debug.dat","w");
   //--- spline variables
@@ -52,7 +52,7 @@ int main(){
   double crosst;
   //--- fourier variables
   int nE;
-  double *WPERe,*WPEIm,*E,Ei,aE,stepE,*eknot,Ef;
+  double *WPERe,*WPEIm,*E,Ei,aE,stepE,*eknot,Ef[200];
   fftw_complex *workin,*workout,*workk; //*aE;
   double kmin,kmax,Emin,Emax;
   fftw_plan p;
@@ -85,7 +85,7 @@ int main(){
   printf("Reading input parameters...\n\n");
 
   //--- Read Input File
-  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&Ef,&type,&crosst,windtype);
+  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&nEf,Ef,&type,&crosst,windtype);
   fclose(arq);
   //-----
 
@@ -140,7 +140,8 @@ int main(){
   printf("\n>Final state propagation:\n");
   printf("final state potential file: %s \n",potfile);
   printf("propagation time: %lf %lf, step: %lf \n",pti,ptf,pstept);
-  printf("Energy: %lf \n",Ef);
+  printf("Energies: %lf\n",Ef[0]);
+  for(k=1;k<nEf;k++) printf("          %lf\n",Ef[k]);
 
   printf("\n>Fourier transformparameters:\n");
   printf("grid is 2^%d, time step = %E \n",twopow,steptspl);
@@ -204,7 +205,7 @@ int main(){
   printf("\n<< Starting Fourier section >>\n");
 
   begint = clock();
-  ftinfo=run_all_fft(bcoefre,bcoefim,X,Y,xknot,yknot,tknot,kx,ti,tf,steptspl,np[1],np[0],nf,NTG,fpr,width,WPERe,WPEIm,windtype,dim);
+  ftinfo=run_all_fft(bcoefre,bcoefim,X,Y,xknot,yknot,tknot,kx,ti,tf,steptspl,np,nf,NTG,width,WPERe,WPEIm,windtype,dim);
   endt = clock();
   timediff = (double)(endt - begint)/CLOCKS_PER_SEC;
 
@@ -219,11 +220,9 @@ int main(){
   printf("\n Wavepacket has been trasformed to the Energy domain!\n");
   printf("\n it took %lf seconds \n",timediff);
 
-  /*
+  //checkmatrix_ (WPERe,WPEIm,&np[1],&np[0],&nE,X,Y,E);
 
-   //checkmatrix_ (WPERe,WPEIm,&np[1],&np[0],&nE,X,Y,E);
-
-  printf("\nGenerating 3D spline representation of the fourier transformed wavepacket\n");
+  printf("\nGenerating spline representation of the fourier transformed wavepacket\n");
   free(bcoefre);
   free(bcoefim);
   //free(T); can I free T ???
@@ -244,11 +243,17 @@ int main(){
   //---
   begint = clock();
   dbsnak_ (&np[0], Y, &kx, yknot);
-  dbsnak_ (&np[1], X, &kx, xknot);
   dbsnak_ (&nE, E, &kx, eknot);
   //----------
-  dbs3in_ (&np[0],Y,&np[1],X,&nE,E,WPERe,&np[0],&np[1],&kx,&kx,&kx,yknot,xknot,eknot,bcoefre);
-  dbs3in_ (&np[0],Y,&np[1],X,&nE,E,WPEIm,&np[0],&np[1],&kx,&kx,&kx,yknot,xknot,eknot,bcoefim);
+  if(strncasecmp(dim,".2D",3)==0){
+    dbsnak_ (&np[1], X, &kx, xknot);
+    dbs3in_ (&np[0],Y,&np[1],X,&nE,E,WPERe,&np[0],&np[1],&kx,&kx,&kx,yknot,xknot,eknot,bcoefre);
+    dbs3in_ (&np[0],Y,&np[1],X,&nE,E,WPEIm,&np[0],&np[1],&kx,&kx,&kx,yknot,xknot,eknot,bcoefim);
+  }else if(strncasecmp(dim,".1D",3)==0){
+    dbs2in_ (&np[0],Y,&nE,E,WPERe,&np[0],&kx,&kx,yknot,eknot,bcoefre);
+    dbs2in_ (&np[0],Y,&nE,E,WPEIm,&np[0],&kx,&kx,yknot,eknot,bcoefim);
+  }
+
   endt = clock();
   timediff = (double)(endt - begint)/CLOCKS_PER_SEC;
   //----------
@@ -256,38 +261,33 @@ int main(){
   //free(WPERe);
   //free(WPEIm);
 
-  printf("3D spline matrices calculated!\n");
+  printf("Spline matrices calculated!\n");
   printf("it took %lf seconds\n",timediff);
-
-  prtwpE=1;
-  //-----print energy wavepackets ----------------------
-  if(prtwpE==0){
-    l=0;
-    for(k=nE/2;k<nE;k=k + 3){
-      strcpy(wp_Enam,"wpE_");
-      sprintf(num,"%d.dat",l+1);
-      strcat(wp_Enam,num);
-      wp_E = fopen(wp_Enam,"w");
-      val[2] = Ei + k*stepE;
-      fprintf(wp_E,"# Energy = %E \n",val[2]);
-
-      for(i=0;i<np[1];i++){
-	for(j=0;j<np[0];j++){
-	  val[0] = dbs3vl_ (&Y[j],&X[i],&val[2],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefre);
-	  val[1] = dbs3vl_ (&Y[j],&X[i],&val[2],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefim);
-	  fprintf(wp_E,"%E %E %E %E\n",X[i],Y[j],val[0],val[1]);
-	}
-	fprintf(wp_E,"\n");
-      }
-      fclose(wp_E);
-      l=l+1;
-    }
-  }
-
-
+  
   printf("\n Finished Fourier section\n");
   printf("------------------------------------------------------\n\n\n");
-  */
+
+  printf("\n<< Starting initial conditions section >>\n");
+  
+  printf("spline coefficients matrices will be printed into files \n");
+  //---
+
+  for(k=0;k<nEf;k++){
+    sprintf(fnam,"wp_%lf.dat",Ef[k]);
+    printf("opening file %s \n",fnam);
+    wp_E = fopen(fnam,"w");
+
+    if(strncasecmp(dim,".2D",3)==0){
+      printf("not implemented yet");
+    }else if(strncasecmp(dim,".1D",3)==0){
+      for(j=0;j<np[0];j++){
+	val[0] = dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nf,bcoefre);
+	val[1] = dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nf,bcoefim);
+	fprintf(wp_E,"%E %E %E \n",Y[j],val[0],val[1]);
+      }
+    }
+
+  }  
   
   printf("\n# End of Calculation!\n");
   printf("# Raman terminated successfully!\n");

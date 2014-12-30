@@ -156,6 +156,7 @@ int main(){
   }else if(strncasecmp(windtype,".EXPDEC",7)==0){
     printf("Lifetime exponential decayment will be used as a window function \n");
     printf("intermediate state lifetime = %E eV\n",width);
+    width = width/(27.2114);
   }else{
     printf("invalid fourier transform window chosen\n error: %s \n",windtype);
     return 666;
@@ -258,8 +259,8 @@ int main(){
   timediff = (double)(endt - begint)/CLOCKS_PER_SEC;
   //----------
 
-  //free(WPERe);
-  //free(WPEIm);
+  free(WPERe);
+  free(WPEIm);
 
   printf("Spline matrices calculated!\n");
   printf("it took %lf seconds\n",timediff);
@@ -281,8 +282,8 @@ int main(){
       printf("not implemented yet");
     }else if(strncasecmp(dim,".1D",3)==0){
       for(j=0;j<np[0];j++){
-	val[0] = dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nf,bcoefre);
-	val[1] = dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nf,bcoefim);
+	val[0] = dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefre);
+	val[1] = dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefim);
 	fprintf(wp_E,"%E %E %E \n",Y[j],val[0],val[1]);
       }
     }

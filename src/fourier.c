@@ -17,23 +17,30 @@
 
 int gendata_complex(fftw_complex *work, double *bcoefre, double *bcoefim, double *xknot, double *yknot, double *tknot, int kx, int *np, int nf, double x, double y, double ti,double tf, double steptspl, int NTG, double width, char *windtype, char *dim){
   int i,j,nt,m;
+  double s;
   double t,val,window,taux;
   //FILE *wind=fopen("window.dat","w");
 
+
   for(i=0;i<NTG;i++){
     t = -tf + i*steptspl;
+    
+    if(t < 0) s = -1.0e+0;
+    else s = 1.0e+0;
+
+    t = fabs(t);
+
     if(strncasecmp(windtype,".SGAUSS",7)==0){
       taux = pow(tf,2)/(log(one/width)/log(M_E));
       window = exp(-pow(t,2)/taux);
     }else if(strncasecmp(windtype,".EXPDEC",7)==0) window = exp(-width*t);
 
-    t = fabs(t);
     if(strncasecmp(dim,".2D",3)==0){
       work[i][0] = window*dbs3vl_ (&y,&x,&t,&kx,&kx,&kx,yknot,xknot,tknot,&np[0],&np[1],&nf,bcoefre);
-      work[i][1] = window*dbs3vl_ (&y,&x,&t,&kx,&kx,&kx,yknot,xknot,tknot,&np[0],&np[1],&nf,bcoefim);
+      work[i][1] = s*window*dbs3vl_ (&y,&x,&t,&kx,&kx,&kx,yknot,xknot,tknot,&np[0],&np[1],&nf,bcoefim);
     }else if(strncasecmp(dim,".1D",3)==0){
       work[i][0] = window*dbs2vl_ (&y,&t,&kx,&kx,yknot,tknot,&np[0],&nf,bcoefre);
-      work[i][1] = window*dbs2vl_ (&y,&t,&kx,&kx,yknot,tknot,&np[0],&nf,bcoefim);
+      work[i][1] = s*window*dbs2vl_ (&y,&t,&kx,&kx,yknot,tknot,&np[0],&nf,bcoefim);
     }
 
   }
@@ -106,7 +113,7 @@ int run_all_fft(double *bcoefre,double *bcoefim, double *X, double *Y,double *xk
       center_fft(workout,NTG);
 
       //debug ---
-      if(i==5 && j==26){
+      if(j==26){
 	//center_fft(workin,NTG);
 	fprintf(filin,"# %E %E\n",X[i],Y[j]);
 	for(k=0;k<NTG;k++)fprintf(filin,"%E %E %E\n",-tf + k*steptspl,workin[k][0],workin[k][1]);

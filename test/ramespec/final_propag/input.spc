@@ -1,0 +1,63 @@
+*** eSPec input file ***
+========================
+**MAIN
+*TITLE
+ +++++ eSPec input file test 2 +++++
+*DIMENSION
+.1D
+ 512/
+*POTENTIAL
+.FILE
+wp_0.000000.dat
+*GRID_RANGES
+ -2.5  2.5/
+*MASS
+ 12.0002D0/ 
+*TPCALC
+.SPECTRUM
+.TD
+*INIEIGVC
+.GETC
+*CHANGE
+.YES
+*PRTCRL
+.PARTIAL
+*PRTPOT
+.YES
+*PRTEIGVC
+.YES
+*PRTVEFF
+.NO
+*PRTEIGVC2
+.YES
+*PRTPULSE
+.NO
+*PRTDIPOLE
+.NO
+
+**TD
+*PROPAG
+.PPSOD
+ 0.0  230.00  5D-5/
+*PRPGSTATE
+ 0/
+*TPTRANS
+.ONE
+*PRPTOL
+ 3.0D0/
+*NPROJECTIONS
+ 6  1
+
+**SPECTRUM
+*FOURIER
+ 14/
+*WINDOWING
+.SG
+1D-5/
+
+**END
+
+
+
+
+

@@ -1,0 +1,18 @@
+# eSPec-Raman input
+
+*Main
+dimension
+.1D
+512
+mass: 12.0002
+filename: ReIm_
+nfiles: 1 820
+timeinterval: 0.000 119.574000003408
+
+*Propagation
+time: 0.000 500 1e-4
+potential: vfinal.dat
+finalenerg: 4 -0.5 0.0 0.5 1.0
+Fourier: 12
+Window
+.EXPDEC 0.05

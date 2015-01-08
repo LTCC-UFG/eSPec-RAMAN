@@ -1,0 +1,70 @@
+*** eSPec input file ***
+========================
+**MAIN
+*TITLE
+ +++++ eSPec input file test 1 +++++
+*DIMENSION
+.1D
+512/
+*POTENTIAL
+.OHS
+0.00000  1580.85/
+0.00000  1580.85/
+*GRID_RANGES 
+-2.5  2.5/
+*MASS
+7.49D0/
+*TPCALC
+.SPECTRUM
+.TD
+*INIEIGVC
+.CALC
+*CHANGE
+.YES
+*PRTCRL
+.PARTIAL
+*PRTPOT
+.YES
+*PRTEIGVC
+.YES
+*PRTVEFF
+.NO
+*PRTEIGVC2
+.YES
+*PRTPULSE
+.NO
+*PRTDIPOLE
+.NO
+
+**TI
+*TPDIAG
+.MTRXDIAG 
+*NIST
+13  0/
+*ABSTOL
+1D-6/
+
+**TD
+*PROPAG
+.PSOD
+0.0  120.0  5D-5/
+*PRPGSTATE
+0/
+*TPTRANS
+.ONE
+*PRPTOL
+3D0/
+
+
+**SPECTRUM
+*FOURIER
+14/
+*WINDOWING
+.SG
+1D-5/
+**END
+
+
+
+
+

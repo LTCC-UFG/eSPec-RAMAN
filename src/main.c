@@ -123,12 +123,6 @@ int main(){
   printf("npoints: %d ",np[0]);
   if(strncasecmp(dim,".2D",3)==0)printf("%d \n", np[1]);
   printf("\n");
-  //printf("npoints x %d \n", np[1]);
-  //printf("npoints y %d \n", np[0]);
-  //printf("xrange: %lf %lf\n", xi, xf);
-  //printf("yrange %lf %lf\n", yi, yf);
-  //printf("step X %.7lf Bohr\n",stepx);
-  //printf("step Y %.7lf Bohr\n", stepy);
   
   printf("\n>Wavepacket files:\n");
   printf("File name: %s\n",file);
@@ -194,7 +188,7 @@ int main(){
   stept = FSAU(stept);
   steptspl = FSAU(steptspl);
 
-  //--- Read all wavepackets and generate spline coefficient files
+  //--- Read all wavepackets and generate spline coefficient matrices
   iflth = strlen(file);
   readallspl_(file,&iflth,X,Y,T,bcoefre,bcoefim,xknot,yknot,tknot,np,&nf,&kx,&stfil,dim);
 
@@ -271,19 +265,31 @@ int main(){
   printf("\n<< Starting initial conditions section >>\n");
   
   printf("spline coefficients matrices will be printed into files \n");
+  //print_bcoef(double *bcoefre, double *bcoefim, int nx,int ny,int nz,char *filenam ,char *type);
   //---
 
   for(k=0;k<nEf;k++){
     sprintf(fnam,"wp_%lf.dat",Ef[k]);
     printf("opening file %s \n",fnam);
     wp_E = fopen(fnam,"w");
+    printf("E = %lf eV ,",Ef[k]);
+    Ef[k] = Ef[k]/27.2114;
+    printf("E = %lf a.u. \n",Ef[k]);
 
     if(strncasecmp(dim,".2D",3)==0){
       printf("not implemented yet");
     }else if(strncasecmp(dim,".1D",3)==0){
+      /* I don't think we can normalize the wavefunction for a given E separately...*/
+      norm = 0.0e+0;
       for(j=0;j<np[0];j++){
 	val[0] = dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefre);
 	val[1] = dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefim);
+	norm = norm + val[0]*val[0] + val[1]*val[1];
+      }
+      fprintf(wp_E,"# E = %E eV,  Intensity = %E \n",Ef[k]*27.2114,norm);
+      for(j=0;j<np[0];j++){
+	val[0] = (1.00/sqrt(norm))*dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefre);
+	val[1] = (1.00/sqrt(norm))*dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefim);
 	fprintf(wp_E,"%E %E %E \n",Y[j],val[0],val[1]);
       }
     }

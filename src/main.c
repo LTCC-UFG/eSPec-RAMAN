@@ -35,10 +35,10 @@ void readallspl(char *file,int *iflth,double *X,double *Y,double *T,double *bcoe
 
 int main(){
   int i,j,k,l,np[3],nf,nxr,nfr,xs,ys,ks,ldf,mdf,nw,nz,nwr,nzr;
-  int fp[10],fpr[10],stfil,endfil,iflth,nrmse,type,noreg,nEf;
+  int fp[10],fpr[10],stfil,endfil,iflth,nrmse,type,nEf;
   int wholegrid,twopow,prtwpE,prtRMSwhole;
   double norm;
-  double ti,tf,pti,ptf,pstept,xi,xf,yi,yf,stept,sh[3],width,potshift,maxF[2],maxaE[2],stepw,stepz;
+  double ti,tf,pti,ptf,pstept,xi,xf,yi,yf,stept,sh[3],width,potshift,stepw,stepz;
   double *X,*Y,*T,rmse,xwork,*W,*Z,mem;
   double m[3],x,y,pk,pki,pkf,steppk,ansk,val[5];
   char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10],fnam[20];
@@ -63,7 +63,6 @@ int main(){
 
   //--- Default values
   type=0;
-  noreg=1;
   np[1] = 1;
   wholegrid=1;
   stepxspl=1.0E-3;
@@ -148,7 +147,7 @@ int main(){
     printf("Super gaussian window function will be applied\n");
     printf("width = %E \n",width);
   }else if(strncasecmp(windtype,".EXPDEC",7)==0){
-    printf("Lifetime exponential decayment will be used as a window function \n");
+    printf("Lifetime exponential decayment will be applied \n");
     printf("intermediate state lifetime = %E eV\n",width);
     width = width/(27.2114);
   }else{
@@ -156,8 +155,8 @@ int main(){
     return 666;
   }
 
-  mem = (4.0*(np[0]*np[1]*nf*sizeof(double))/(1024*1024*1024) + 2*(np[0]+np[1]+nf+NTG)*sizeof(double) + 2.0*(np[1]*np[0]*NTG*sizeof(double)))/(1024*1024*1024);
-  printf("\nMemory requirement estimation: %E GB\n",mem);
+  //mem = (4.0*(np[0]*np[1]*nf*sizeof(double))/(1024*1024*1024) + 2*(np[0]+np[1]+nf+NTG)*sizeof(double) + 2.0*(np[1]*np[0]*NTG*sizeof(double)))/(1024*1024*1024);
+  //printf("\nMemory requirement estimation: %E GB\n",mem);
   
   
   printf("\nFinished input section!\n");
@@ -177,10 +176,6 @@ int main(){
   WPEIm = malloc(np[0]*np[1]*(NTG)*sizeof(double)); 
 
   printf("\n<< Starting reading and spline section >>\n");
-  
-  // eSPec output files have unitary euclidean norm, in order to renormalize it to the integral norm:
-  //norm = 1.0e+0/sqrt(stepx*stepy);
-  //norm = 1.0;
  
   // convert time variables from fs to au
   ti = FSAU(ti);

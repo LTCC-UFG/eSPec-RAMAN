@@ -68,12 +68,14 @@ c---------------------end of K loop
       CALL SYSTEM_CLOCK(TEND,RATE)
       TDIFF = REAL(TEND - TBEGIN)/REAL(RATE)
       
-c     WRITE(*,*) 'the read data will be printed to files, (debug)'
-c     DO K=1,NF,1
-c     CALL FILENAME(Filen,'check_read',9,K)
+      WRITE(*,*) 'the read data will be printed to files, (debug)'
+      DO K=1,NF,1
+      CALL FILENAME(Filen,'check_read',9,K)
 c     CALL PRTWP1D(Re(1:NP(1),1,K),Im(1:NP(1),1,K),Y,T(K),NP(1)
 c     &        ,FILEN)
-c     ENDDO
+      CALL PRTWP(Re(1:NP(1),1:NP(2),K),Im(1:NP(1),1:NP(2),K),
+     &     X,Y,T,NP(2),NP(1),FILEN) 
+      ENDDO
 
       write(*,*)
       write(*,*)'All data has been read!'
@@ -134,8 +136,11 @@ c     write(*,*) 'imaginary part'
       write(*,*)
       write(*,*)'estimating error in interpolation:'
       write(*,*)
-c     CALL ERRORSPL(FIL,IFLTH,Re,Im,BCOEFRE,BCOEFIM,Y,X,T
-c     &    ,NYR,NXR,NF,YKNOT,XKNOT,TKNOT,KX,PRTRMSWHOLE)
+
+      IF(DIM(1:3).EQ.'.2D')THEN
+      CALL ERRORSPL(FIL,IFLTH,Re,Im,BCOEFRE,BCOEFIM,Y,X,T
+     &     ,NP(1),NP(2),NF,YKNOT,XKNOT,TKNOT,KX,1)
+      ENDIF
       
       IF(DIM(1:3).EQ.'.1D')THEN
       RMSERR(1)=RMSD1D(Re(1:NP(1),1,1),BCOEFRe(1:NP(1),1,1:NF),Y,T,YKNOT

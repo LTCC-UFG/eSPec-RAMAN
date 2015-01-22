@@ -68,14 +68,16 @@ c---------------------end of K loop
       CALL SYSTEM_CLOCK(TEND,RATE)
       TDIFF = REAL(TEND - TBEGIN)/REAL(RATE)
       
-      WRITE(*,*) 'the read data will be printed to files, (debug)'
-      DO K=1,NF,1
-      CALL FILENAME(Filen,'check_read',9,K)
+c      WRITE(*,*) 'the read data will be printed to files, (debug)'
+c      DO K=1,NF,1
+c      CALL FILENAME(Filen,'check_read',9,K)
+cc 1D
 c     CALL PRTWP1D(Re(1:NP(1),1,K),Im(1:NP(1),1,K),Y,T(K),NP(1)
 c     &        ,FILEN)
-      CALL PRTWP(Re(1:NP(1),1:NP(2),K),Im(1:NP(1),1:NP(2),K),
-     &     X,Y,T,NP(2),NP(1),FILEN) 
-      ENDDO
+cc 2D
+c      CALL PRTWP(Re(1:NP(1),1:NP(2),K),Im(1:NP(1),1:NP(2),K),
+c     &     X,Y,T,NP(2),NP(1),FILEN) 
+c      ENDDO
 
       write(*,*)
       write(*,*)'All data has been read!'

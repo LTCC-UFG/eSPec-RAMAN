@@ -6,6 +6,12 @@
 
 int run_all_fft(double *bcoefre,double *bcoefim, double *X, double *Y, double *xknot, double *yknot, double *tknot,int kx,double ti,double tf,double steptspl,int *np,int nf,int NTG, double width, double *WPERe,double *WPEIm, char *windtype, char *dim);
 
+int gendata_Psic(fftw_complex *work, double *bcoefre, double *bcoefim, double *xknot, double *yknot, double *tknot, int kx, int *np, int nf, double x, double y, double ti,double tf, double steptspl, int NTG, double width, char *windtype, char *dim);
+
+int gendata_Psic_bar(fftw_complex *work, double *bcoefre, double *bcoefim, double *xknot, double *yknot, double *tknot, int kx, int *np, int nf, double x, double y, double ti,double tf, double steptspl, int NTG, double width, char *windtype, char *dim);
+
+//----
+
 int gendata_complex(fftw_complex *work, double *bcoefre, double *bcoefim, double *xknot, double *yknot, double *tknot, int kx, int *np, int nf, double x, double y, double ti,double tf, double steptspl, int NTG, double width, char *windtype, char *dim);
 
 int run_fftw(fftw_complex *in, fftw_complex *out, int N);

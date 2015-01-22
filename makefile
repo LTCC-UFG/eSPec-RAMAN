@@ -8,7 +8,7 @@ CC=gcc
 FC=ifort -nofor_main
 #FC=gfortran
 #ifort flags
-FFLAGS=-traceback 
+FFLAGS=-traceback -fast
 #gfortran flags
 #FFLAGS=-O3
 CFLAGS=-O3 

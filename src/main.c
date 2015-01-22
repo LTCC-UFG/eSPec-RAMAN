@@ -11,8 +11,9 @@
 /*
 Program: Raman
 
-Authors: Freddy Fernandes Guimarães
-         Vinicius Vaz da Cruz - viniciusvcruz@gmail.com
+Authors: Vinicius Vaz da Cruz - viniciusvcruz@gmail.com 
+         Freddy Fernandes Guimarães
+         
 
 History: Based on FluxVE written by Vinicius
 
@@ -27,7 +28,7 @@ Goiania, 08th of december of 2014
 #define Me    9.10938188E-31 //mass of electron in Kg
 #define FSAU(x) (x)*41.3413745758e+0 ///0.024189E+0 //fs to au units of time conversion                        mtrxdiag_ (char *dim, int *il, int *iu, int *info, int *mxdct, int *n, double *abstol, int *iwork, int *np, double *eigvl, double *shm, double *vpot, double *work, double *wk, double *eigvc);
 
-int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst, char *windtype);
+int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst, char *windtype,double *Ereso);
 
 void readallspl(char *file,int *iflth,double *X,double *Y,double *T,double *bcoefRe,double *bcoefIm,double *xknot,double *yknot,double *tknot, int *np, int *nf, int *kx, int *stfil, char *dim);
   
@@ -39,9 +40,9 @@ int main(){
   int wholegrid,twopow,prtwpE,prtRMSwhole;
   double norm;
   double ti,tf,pti,ptf,pstept,xi,xf,yi,yf,stept,sh[3],width,potshift,stepw,stepz;
-  double *X,*Y,*T,rmse,xwork,*W,*Z,mem;
+  double *X,*Y,*T,rmse,xwork,*W,*Z,mem,Ereso;
   double m[3],x,y,pk,pki,pkf,steppk,ansk,val[5];
-  char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10],fnam[20];
+  char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10],fnam[20],fnam2[20];
   FILE *arq=fopen("raman.inp","r");
   FILE *deb=fopen("debug.dat","w");
   //--- spline variables
@@ -58,7 +59,7 @@ int main(){
   fftw_plan p;
   clock_t begint,endt;
   double timediff;
-  FILE *wp_E;
+  FILE *wp_E,*wp2_E;
 
 
   //--- Default values
@@ -84,7 +85,7 @@ int main(){
   printf("Reading input parameters...\n\n");
 
   //--- Read Input File
-  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&nEf,Ef,&type,&crosst,windtype);
+  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&nEf,Ef,&type,&crosst,windtype,&Ereso);
   fclose(arq);
   //-----
 
@@ -133,7 +134,8 @@ int main(){
   printf("\n>Final state propagation:\n");
   printf("final state potential file: %s \n",potfile);
   printf("propagation time: %lf %lf, step: %lf \n",pti,ptf,pstept);
-  printf("Energies: %lf\n",Ef[0]);
+  printf("resonance frequency: %lf eV\n",Ereso);
+  printf("detuning: %lf\n",Ef[0]);
   for(k=1;k<nEf;k++) printf("          %lf\n",Ef[k]);
 
   printf("\n>Fourier transformparameters:\n");
@@ -264,16 +266,51 @@ int main(){
   //---
 
   for(k=0;k<nEf;k++){
+
+    while(Ef[k]/27.2114 + Ereso < Ei && k < nEf){
+      printf("chosen detuning value %lf is out of the FFT range!\n");
+      k = k + 1;
+    }
+    if(k > nEf) break;
+
     sprintf(fnam,"wp_%lf.dat",Ef[k]);
     printf("opening file %s \n",fnam);
+    sprintf(fnam2,"wp2_%lf.dat",Ef[k]);
+
     wp_E = fopen(fnam,"w");
-    printf("E = %lf eV ,",Ef[k]);
+    printf("detun = %lf eV ,",Ef[k]);
     Ef[k] = Ef[k]/27.2114;
-    printf("E = %lf a.u. \n",Ef[k]);
+    printf("detun = %lf a.u. \n",Ef[k]);
+    Ef[k] = Ef[k] + Ereso;
 
     if(strncasecmp(dim,".2D",3)==0){
-      printf("not implemented yet");
+
+      // this second file is just for plotting on gnuplot
+      
+      wp2_E = fopen(fnam2,"w");
+
+      norm = 0.0e+0;
+      for(i=0;i<np[1];i++){
+	for(j=0;j<np[0];j++){
+	  val[0] = dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefre);
+	  val[1] = dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefim);
+	  norm = norm + val[0]*val[0] + val[1]*val[1];
+	}
+      }
+      fprintf(wp_E,"# ominc = %E eV,  Intensity = %E \n",Ef[k]*27.2114,norm);
+      for(i=0;i<np[1];i++){
+	for(j=0;j<np[0];j++){
+	  val[0] = (1.00/sqrt(norm))*dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefre);
+	  val[1] = (1.00/sqrt(norm))*dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefim);
+	  fprintf(wp_E,"%E %E %E %E \n",X[i],Y[j],val[0],val[1]);
+	  fprintf(wp2_E,"%E %E %E %E \n",X[i],Y[j],val[0],val[1]);
+	}
+	fprintf(wp2_E,"\n");
+      }
+      fclose(wp2_E);
+      //-----------------------------------
     }else if(strncasecmp(dim,".1D",3)==0){
+
       /* I don't think we can normalize the wavefunction for a given E separately...*/
       norm = 0.0e+0;
       for(j=0;j<np[0];j++){
@@ -281,15 +318,15 @@ int main(){
 	val[1] = dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefim);
 	norm = norm + val[0]*val[0] + val[1]*val[1];
       }
-      fprintf(wp_E,"# E = %E eV,  Intensity = %E \n",Ef[k]*27.2114,norm);
+      fprintf(wp_E,"# ominc = %E eV,  Intensity = %E \n",Ef[k]*27.2114,norm);
       for(j=0;j<np[0];j++){
 	val[0] = (1.00/sqrt(norm))*dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefre);
 	val[1] = (1.00/sqrt(norm))*dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefim);
 	fprintf(wp_E,"%E %E %E \n",Y[j],val[0],val[1]);
       }
     }
-
-  }  
+    fclose(wp_E);
+  } 
   
   printf("\n# End of Calculation!\n");
   printf("# Raman terminated successfully!\n");

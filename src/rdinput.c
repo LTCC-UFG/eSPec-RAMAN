@@ -3,10 +3,12 @@
 #include<math.h>
 #include<string.h>
 
-int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype){
+int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype, double *Ereso){
   int i,j,k,spl;
   int NXG,NYG,jcheck1,jcheck2;
   char workk[50],coment[150],typenam[20];
+
+  k = 0;
 
   //rdinput
   while(fscanf(arq,"%s", workk)!=EOF){
@@ -65,12 +67,14 @@ int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, doubl
 	if(strncasecmp(workk,"time",4)==0)fscanf(arq,"%lf %lf %lf",pti,ptf,pstept);
 	if(strncasecmp(workk,"potential",9)==0)fscanf(arq,"%s",potfile);
 	if(strncasecmp(workk,"crossterm",9)==0)fscanf(arq, "%lf", crosst);
-	if(strncasecmp(workk,"finalenerg",10)==0){
-	  printf("inside energ %s\n",workk);
-	  //fscanf(arq,"%d",twopow);
-	  fscanf(arq,"%d", nEf);
-	  printf(">> %d \n",nEf);
-	  for(k=0;k<*nEf;k++) fscanf(arq, "%lf", &Ef[k]); 
+	if(strncasecmp(workk,"Ereso",4)==0)fscanf(arq, "%lf", Ereso);
+	if(strncasecmp(workk,"detuning",8)==0){
+	  //fscanf(arq,"%d", nEf);
+	  //for(k=0;k<*nEf;k++) fscanf(arq, "%lf", &Ef[k]);
+	  while(fscanf(arq,"%lf",&Ef[k]) == 1){
+	    k=k+1; 
+	  }
+	    *nEf = k;
 	}
 	if(strncasecmp(workk,"Fourier",7)==0)fscanf(arq,"%d",twopow);
 	if(strncasecmp(workk,"Window",6)==0){

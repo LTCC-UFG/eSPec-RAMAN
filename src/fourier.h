@@ -24,7 +24,9 @@ int gendata(double *work, double *bcoef, double *xknot, double *yknot, double *t
 
 double gausswp(double x, double x0, double hwhm, double norm);
 
-int print_bcoef(double *bcoefre, double *bcoefim, int nx,int ny,int nz,char *filenam, char *type);
+int print_bcoef(char *jobnam,double *X, double *Y, double *E, double *bcoefre, double *bcoefim, int *np,int nE);
+
+int read_bcoef(char *jobnam,double *X, double *Y, double *E, double *bcoefre, double *bcoefim, int *np,int nE);
 
 double gausswp_k(double k, double k0, double hwhm);
 

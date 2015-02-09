@@ -3,7 +3,7 @@
 #include<math.h>
 #include<string.h>
 
-int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype, double *Ereso){
+int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype, double *Ereso, double *shift, int *qop, char *qfnam,char *jobnam){
   int i,j,k,spl;
   int NXG,NYG,jcheck1,jcheck2;
   char workk[50],coment[150],typenam[20];
@@ -34,6 +34,7 @@ int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, doubl
 	    return 666;
 	  }
 	}
+	if(strncasecmp(workk,"job",3)==0) fscanf(arq, "%s", jobnam);
 	if(strncasecmp(workk,"dimension",6)==0){
 	  fscanf(arq,"%s", dim);
 	  fscanf(arq,"%d",&np[0]);
@@ -75,6 +76,11 @@ int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, doubl
 	    k=k+1; 
 	  }
 	    *nEf = k;
+	}
+	if(strncasecmp(workk,"shift",5)==0)fscanf(arq,"%lf",shift);
+	if(strncasecmp(workk,"Qoperator",7)==0){
+	  *qop = 0;
+	  fscanf(arq,"%s",qfnam);
 	}
 	if(strncasecmp(workk,"Fourier",7)==0)fscanf(arq,"%d",twopow);
 	if(strncasecmp(workk,"Window",6)==0){

@@ -248,16 +248,20 @@ double gausswp_k(double k, double k0, double hwhm){
 
  */
 
-int print_bcoef(double *bcoefre, double *bcoefim, int nx,int ny,int nz,char *filenam ,char *type){
+int print_bcoef(char *jobnam,double *X, double *Y, double *E,double *bcoefre, double *bcoefim, int *np,int nE){
   int i,nt;
-  FILE *out=fopen(filenam,"w");
-  nt = nx*ny*nz;
+  FILE *out=fopen("fft_spline.bcoef","w");
+  nt = np[0]*np[1]*nE;
 
-  fprintf(out,"%s\n",type);
-  fprintf(out,"%d %d %d\n",ny,nx,nz);
+  fprintf(out,"%s\n",jobnam);
+  fprintf(out,"%d %d %d\n",np[0],np[1],nE);
+
+  for(i=0;i<np[0];i++)fprintf(out,"%.15E ",Y[i]);
+  for(i=0;i<np[1];i++)fprintf(out,"%.15E ",X[i]);
+  for(i=0;i<nE;i++)fprintf(out,"%.15E ",E[i]);
 
   for(i=0;i<nt;i++){
-    fprintf(out,"%E.15 %E.15 ",bcoefre[i],bcoefim[i]);
+    fprintf(out,"%.15E %.15E ",bcoefre[i],bcoefim[i]);
   }
 
   fclose(out);
@@ -266,6 +270,48 @@ int print_bcoef(double *bcoefre, double *bcoefim, int nx,int ny,int nz,char *fil
 
 }
 
+
+/*
+  print_bcoef
+
+  this routine reads the spline coefficients from a file from a previous calculation.
+
+ */
+
+int read_bcoef(char *jobnam,double *X, double *Y, double *E, double *bcoefre, double *bcoefim, int *np,int nE){
+  int i,nt;
+  int npr[3],nEr;
+  char jobnamr[50];
+  FILE *out=fopen("fft_spline.bcoef","r");
+  nt = np[0]*np[1]*nE;
+
+  fscanf(out,"%s\n",jobnamr);
+  fscanf(out,"%d %d %d\n",&npr[0],&npr[1],&nEr);
+
+  if(np[0] != npr[0]){
+    printf("Error! discrepancies found between the inputed number of points and the bcoef file ny = %d != %d \n you might not want to use this file.",np[0],npr[0]);
+    return 66;
+  }else if(np[0] != npr[0]){
+    printf("Error! discrepancies found between the inputed number of points and the bcoef file nx = %d != %d \n you might not want to use this file.",np[1],npr[1]);
+    return 66;
+  }else if(np[0] != npr[0]){
+    printf("Error! discrepancies found between the inputed number of points and the bcoef file nx = %d != %d \n you might not want to use this file.",nE,nEr);
+    return 66;
+  }
+
+  for(i=0;i<np[0];i++)fscanf(out,"%lf",&Y[i]);
+  for(i=0;i<np[1];i++)fscanf(out,"%lf",&X[i]);
+  for(i=0;i<nE;i++)fscanf(out,"%lf",&E[i]);
+
+  for(i=0;i<nt;i++){
+    fscanf(out,"%lf %lf",&bcoefre[i],&bcoefim[i]);
+  }
+
+  fclose(out);
+
+  return 0;
+
+}
 
 
 /*
@@ -327,12 +373,6 @@ int gendata_complex(fftw_complex *work, double *bcoefre, double *bcoefim, double
     }
   }
 }
-
-
-
-
-
-
  */
 
 void checkspl1d(double *Y,double *T,double *bcoefre, double *bcoefim, double *xknot,double *yknot,double *tknot,int *np,int nf,int kx){

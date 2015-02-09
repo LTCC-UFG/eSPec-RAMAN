@@ -446,3 +446,29 @@ d     write(1,'(5ES27.15)')X(I),Y(J),M(J,I),MSPL,VAL
 
       RETURN
       END
+
+c-----------------
+c-----------------
+c 1D spline wrapper functions
+
+      SUBROUTINE DOSPLINE1D(X,NX,XKNOT,KX,Y,BCOEF)
+      implicit none
+      REAL*8 X(NX),XKNOT(NX+KX),Y(NX),BCOEF(NX)
+      INTEGER KX,NX
+
+      CALL dbsnak(NX,X,KX,XKNOT)
+      CALL dbsint(NX,X,Y,KX,XKNOT,BCOEF)
+
+      END
+
+
+      FUNCTION SPLINEVAL1D(X,NX,XKNOT,KX,BCOEF)
+      implicit none
+      REAL*8 X,XKNOT(NX+KX),BCOEF(NX),SPLINEVAL1D
+      REAL*8 dbsval
+      INTEGER KX,NX
+
+      SPLINEVAL1D = dbsval(X,KX,XKNOT,NX,BCOEF)
+
+      RETURN
+      END

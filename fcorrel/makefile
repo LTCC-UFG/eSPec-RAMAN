@@ -3,7 +3,7 @@
 # Vinicius Vaz da Cruz
 #
 
-PROG=raman
+PROG=correl
 CC=gcc
 FC=ifort -nofor_main
 #FC=gfortran
@@ -16,7 +16,7 @@ CFLAGS=-O3
 all: main
 
 main: src/main.o src/rdinput.o src/readallspl.o src/splinesurf.o src/fourier.o
-	$(FC) $(FFLAGS) -o $(PROG) src/main.o src/rdinput.o src/readallspl.o src/splinesurf.o src/fourier.o -lfftw3 -lgsl -lgslcblas
+	$(FC) $(FFLAGS) -o $(PROG) src/main.o src/rdinput.o src/readallspl.o src/splinesurf.o src/fourier.o -lfftw3
 
 main.o: src/main.c
 	$(CC) $(CFLAGS) -c src/main.c

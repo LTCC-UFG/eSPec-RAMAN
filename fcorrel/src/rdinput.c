@@ -3,7 +3,7 @@
 #include<math.h>
 #include<string.h>
 
-int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype, double *Ereso, double *shift, int *qop, char *qfnam,char *jobnam){
+int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype,char *jobnam, int *nfunc, char *funam,int *nvc,int *nvf,double *Evf,char *fcnam, char *fcornam){
   int i,j,k,spl;
   int NXG,NYG,jcheck1,jcheck2;
   char workk[50],coment[150],typenam[20];
@@ -27,8 +27,8 @@ int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, doubl
 	if(feof(arq) || workk[0]=='*') goto check; //break;
 	if(strncasecmp(workk,"runtype",7)==0){
 	  fscanf(arq, "%s", typenam);
-	  if(strncasecmp(typenam,"non-reac",8)==0)*type=0;
-	  else if(strncasecmp(typenam,"reac",4)==0)*type=1;
+	  if(strncasecmp(typenam,"correl",6)==0)*type=0;
+	  else if(strncasecmp(typenam,"spectrum",8)==0)*type=1;
 	  else{
 	    printf("invalid run type entered: %s",typenam);
 	    return 666;
@@ -43,8 +43,8 @@ int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, doubl
 	if(strncasecmp(workk,"Mass",4)==0){
 	  fscanf(arq, "%lf", &m[0]);
 	  if(strncasecmp(dim,".2D",3)==0)fscanf(arq, "%lf", &m[1]);
-	  if(strncasecmp(dim,".2DCT",5)==0)fscanf(arq, "%lf", &m[2]);
 	}
+	if(strncasecmp(workk,"corr_np",7)==0) fscanf(arq, "%d", nf);
 	if(strncasecmp(workk,"filename",8)==0) fscanf(arq, "%s", file);
 	if(strncasecmp(workk,"nfiles",6)==0){
 	  fscanf(arq, "%d %d",stfil, endfil);
@@ -54,7 +54,7 @@ int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, doubl
       }
     }
     //FLUX GROUP INPUT 
-    if(strncasecmp(workk,"*Propagation",12)==0){
+    if(strncasecmp(workk,"*Correlation",12)==0){
       for(i=0;;i++){
 	fscanf(arq,"%s", workk);
 	//coment structure
@@ -67,26 +67,38 @@ int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, doubl
 
 	if(strncasecmp(workk,"time",4)==0)fscanf(arq,"%lf %lf %lf",pti,ptf,pstept);
 	if(strncasecmp(workk,"potential",9)==0)fscanf(arq,"%s",potfile);
-	if(strncasecmp(workk,"crossterm",9)==0)fscanf(arq, "%lf", crosst);
-	if(strncasecmp(workk,"Ereso",4)==0)fscanf(arq, "%lf", Ereso);
-	if(strncasecmp(workk,"detuning",8)==0){
-	  //fscanf(arq,"%d", nEf);
-	  //for(k=0;k<*nEf;k++) fscanf(arq, "%lf", &Ef[k]);
-	  while(fscanf(arq,"%lf",&Ef[k]) == 1){
-	    k=k+1; 
-	  }
-	    *nEf = k;
+	if(strncasecmp(workk,"wfunctions",10)==0)fscanf(arq, "%d %s", nfunc,funam);
+      }
+    }
+    //2D + 1D GROUP INPUT 
+    if(strncasecmp(workk,"*crosssection",13)==0){
+      for(i=0;;i++){
+	fscanf(arq,"%s", workk);
+	//coment structure
+	while(workk[0]=='!'){
+	  fgets(coment,90,arq);
+	  fscanf(arq,"%s", workk);
+	  if(feof(arq)) break;
 	}
-	if(strncasecmp(workk,"shift",5)==0)fscanf(arq,"%lf",shift);
-	if(strncasecmp(workk,"Qoperator",7)==0){
-	  *qop = 0;
-	  fscanf(arq,"%s",qfnam);
+	if(feof(arq) || workk[0]=='*') goto check;// break;
+
+	if(strncasecmp(workk,"vf",2)==0)fscanf(arq, "%d",nvf);
+	if(strncasecmp(workk,"Evf",3)==0){
+	  for(i=0;i<*nvf;i++)fscanf(arq, "%lf",&Evf[i]);
 	}
+	if(strncasecmp(workk,"vc",2)==0)fscanf(arq, "%d",nvc);
+	if(strncasecmp(workk,"franckcondon",12)==0)fscanf(arq, "%s",fcnam);
+	if(strncasecmp(workk,"fcorrel",7)==0)fscanf(arq, "%s",fcornam);
 	if(strncasecmp(workk,"Fourier",7)==0)fscanf(arq,"%d",twopow);
 	if(strncasecmp(workk,"Window",6)==0){
 	  fscanf(arq,"%s",windtype);
 	  fscanf(arq,"%lf",width);
 	}	
+	/*if(strncasecmp(workk,"Fourier",7)==0)fscanf(arq,"%d",twopow);
+	if(strncasecmp(workk,"Window",6)==0){
+	  fscanf(arq,"%s",windtype);
+	  fscanf(arq,"%lf",width);
+	  }*/	
       }
     }
     //PRINT INPUT GROUP

@@ -1,0 +1,52 @@
+*** eSPec input file ***
+========================
+**MAIN
+*TITLE
+ +++++ cs2 Raman fin +++++
+*DIMENSION
+.1D
+ 256/
+*POTENTIAL
+.FILE
+wp_0.000000.dat
+*MASS
+12.00/
+*TPCALC
+.SPECTRUM
+.TD
+*INIEIGVC
+.GETC
+*CHANGE
+.YES
+*PRTCRL
+.PARTIAL
+*PRTPOT
+.NO
+*PRTEIGVC
+.NO
+*PRTVEFF
+.NO
+*PRTEIGVC2
+.YES
+
+**TD
+*PROPAG
+.PPSOD
+ 0.0  140.01  5D-4/
+*PRPGSTATE
+ 0/
+*TPTRANS
+.ONE
+*PRPTOL
+ 3.0D0/
+*NPROJECTIONS
+ 6  1
+
+**SPECTRUM
+*FOURIER
+ 14/
+*WINDOWING
+.SG
+1D-5/
+
+**END

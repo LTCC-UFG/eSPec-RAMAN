@@ -1,0 +1,21 @@
+# eSPec-Raman input
+
+*Main
+runtype: spectrum
+dimension
+.1D
+256
+mass: 12.00
+filename: wf_data/ReIm_
+nfiles: 1 0820
+timeinterval: 0.000 139.230000000164
+
+!*Correlation
+!wfunctions 3 inwf.dat
+
+*crosssection
+vc 3
+vf 2
+Evf 0.05 0.1
+franckcondon fcond.dat
+fcorrel: correl.dat

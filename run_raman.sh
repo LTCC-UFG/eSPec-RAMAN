@@ -77,6 +77,21 @@ init_time=$(awk "BEGIN {print (-log($decay_threshold)/($Gamma/27.2114))/41.3411}
 # propagation time on final state
 fin_time=`grep -i fin_time $input | awk '{printf $2}'`
 
+# absorbing conditions
+absorb_cond=`grep -i -w absorb_cond $input | awk '{printf $1}'`
+if [ -z "$absorb_cond" ]; then
+    abs="*ABSORBING"
+    abs1=".SMOOTHW"
+    abstren=`grep -i -w absorb_cond $input | awk '{printf $2}'`"/"
+    work=`grep -i -w absorb_range $input | awk '{printf $1}'`
+    absrang=`grep -i -w absorb_range $input | sed "s/\<$work\>//g"`"/"
+else
+    abs=" "
+    abs1=" "
+    abstren=" "
+    absrang=" "
+fi
+
 #---------------Initial Propagation---------------#
 
 echo "-----------------"
@@ -156,6 +171,10 @@ $mode
  6  1
 *FOURIER
  14/
+$abs
+$abs1
+$abstren
+$absrang
 
 **END
 EOF
@@ -342,6 +361,10 @@ $mass/
  3.0D0/
 *NPROJECTIONS
  6  1
+$abs
+$abs1
+$abstren
+$absrang
 
 **SPECTRUM
 *FOURIER

@@ -195,75 +195,107 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     echo 'Generating initial conditions for second propagation'
     echo
 
+#    if [ "$dim" == ".1D" ]; then
+#	Vg_min=`sed '/#/ d' $initial_pot | awk '{printf $2"\n"}' | perl -e 'print sort { $a<=>$b } <>' | head -1`
+#	#echo "ground state min" $Vg_min
+#	echo "ground state min" $Vg_min > $jobid.log
+#	pos=`cat -n $initial_pot | grep $Vg_min | awk '{printf $1"\n"}' | head -1`
+#	#echo "ground state minimum position" $pos
+#	echo "ground state minimum position" $pos >> $jobid.log
+#	Vd_min=`sed '/#/ d' $decaying_pot | awk '{printf $2"\n"}' | perl -e 'print sort { $a<=>$b } <>' | head -1`
+#	#echo "decaying state min" $Vd_min
+#	echo "decaying state min" $Vd_min >> $jobid.log
+#	Vd=`cat -n $decaying_pot | grep -w " $pos" | awk '{printf $3}'`
+#	#echo "decaying state vertical" $Vd
+#	echo "decaying state vertical" $Vd >> $jobid.log
+#	Vf_min=`sed '/#/ d' $final_pot | awk '{printf $2"\n"}' | perl -e 'print sort { $a<=>$b } <>' | head -1`
+#	#echo "final state min" $Vf_min
+#	echo "final state min" $Vf_min >> $jobid.log
 
-    if [ "$dim" == ".1D" ]; then
+#	if [ -f "${jobid}_init.out" ]; then
 
-	Vg_min=`sed '/#/ d' $initial_pot | awk '{printf $2"\n"}' | perl -e 'print sort { $a<=>$b } <>' | head -1`
-	#echo "ground state min" $Vg_min
-	echo "ground state min" $Vg_min > $jobid.log
-	pos=`cat -n $initial_pot | grep $Vg_min | awk '{printf $1"\n"}' | head -1`
-	#echo "ground state minimum position" $pos
-	echo "ground state minimum position" $pos >> $jobid.log
-	Vd_min=`sed '/#/ d' $decaying_pot | awk '{printf $2"\n"}' | perl -e 'print sort { $a<=>$b } <>' | head -1`
-	#echo "decaying state min" $Vd_min
-	echo "decaying state min" $Vd_min >> $jobid.log
-	Vd=`cat -n $decaying_pot | grep -w " $pos" | awk '{printf $3}'`
-	#echo "decaying state vertical" $Vd
-	echo "decaying state vertical" $Vd >> $jobid.log
-	Vf_min=`sed '/#/ d' $final_pot | awk '{printf $2"\n"}' | perl -e 'print sort { $a<=>$b } <>' | head -1`
-	#echo "final state min" $Vf_min
-	echo "final state min" $Vf_min >> $jobid.log
+#	    E0=`grep '|     0        |' ${jobid}_init.out | awk '{printf $4}'`
+#	    echo "Initial energy" $E0
+#	    echo "Initial energy" $E0 >> $jobid.log
+#
+#	else
+#
+#	    echo "failed to find initial propagation output file ${jobid}_init.out"
+#	    echo "Attempting to read E0 from input file"
+#	    E0=`grep -i -w "E0" | awk '{printf $2}'`
+#	    if [ -z "$E0" ]; then
+#		echo "could not find the value of E0"
+#		echo "please check your input"
+#		exit 666
+#	    fi
+#
+#	fi
+#
+#	omres=$(awk "BEGIN {print $Vd - $Vg_min - $E0}")
+#	echo "resonance frequency: $omres"
+#	echo "resonance frequency: $omres" >> $jobid.log
+#	Eres=$(awk "BEGIN {print $omres - $Vd_min + $E0}")
+#	echo "shifted resonance frequency: $Eres"
+#	echo "shifted reson. frequency: $Eres" >> $jobid.log
+#	Vgf_gap=$(awk "BEGIN {print $Vf_min - Vg_min}")
+#	echo "ground to final gap: $Vgf_gap"
+#	echo "ground to final gap: $Vgf_gap" >> $jobid.log
+#
+#    elif [ "$dim" == ".2D" ]; then
 
-	if [ -f "${jobid}_init.out" ]; then
+    Vg_min=`grep -i Vg_min $input | awk '{printf $2}'`
+    Vd_min=`grep -i Vd_min $input | awk '{printf $2}'`
+    Vf_min=`grep -i Vf_min $input | awk '{printf $2}'`
+    Vd=`grep -i Vd_vert $input | awk '{printf $2}'`
 
-	    E0=`grep '|     0        |' ${jobid}_init.out | awk '{printf $4}'`
-	    echo "Initial energy" $E0
-	    echo "Initial energy" $E0 >> $jobid.log
-
-	else
-
-	    echo "failed to find initial propagation output file ${jobid}_init.out"
-	    echo "Attempting to read E0 from input file"
-	    E0=`grep -i -w "E0" | awk '{printf $2}'`
-	    if [ -z "$E0" ]; then
-		echo "could not find the value of E0"
-		echo "please check your input"
-		exit 666
-	    fi
-
-	fi
-
-	omres=$(awk "BEGIN {print $Vd - $Vg_min - $E0}")
-	echo "resonance frequency: $omres"
-	echo "resonance frequency: $omres" >> $jobid.log
-	Eres=$(awk "BEGIN {print $omres - $Vd_min + $E0}")
-	echo "shifted resonance frequency: $Eres"
-	echo "shifted reson. frequency: $Eres" >> $jobid.log
-	Vgf_gap=$(awk "BEGIN {print $Vf_min - Vg_min}")
-	echo "ground to final gap: $Vgf_gap"
-	echo "ground to final gap: $Vgf_gap" >> $jobid.log
-
-    elif [ "$dim" == ".2D" ]; then
-
-	Vg_min=`grep -i Vg_min $input | awk '{printf $2}'`
-	Vd_min=`grep -i Vd_min $input | awk '{printf $2}'`
-	Vf_min=`grep -i Vf_min $input | awk '{printf $2}'`
-	Vd=`grep -i Vd_vert $input | awk '{printf $2}'`
+    if [ -f "${jobid}_init.out" ]; then
 
 	E0=`grep '|     0        |' ${jobid}_init.out | awk '{printf $4}'`
 	echo "Initial energy" $E0
 	echo "Initial energy" $E0 >> $jobid.log
+
+    else
+
+	echo "failed to find initial propagation output file ${jobid}_init.out"
+	echo "Attempting to read E0 from input file"
+	E0=`grep -i -w "E0" | awk '{printf $2}'`
+	if [ -z "$E0" ]; then
+	    echo "could not find the value of E0"
+	    echo "please check your input"
+	    exit 666
+	fi
+    fi
+
+    check=`grep -i "resonance frequency:" | awk '{printf $1}'`
+    if[ -z "$check" ]; then
 	omres=$(awk "BEGIN {print $Vd - $Vg_min - $E0}")
 	echo "resonance frequency: $omres"
 	echo "resonance frequency: $omres" >> $jobid.log
+    else
+	omres=`grep -i "resonance frequency:" | awk '{printf $3}'`
+	echo "resonance frequency: $omres"
+    fi
+
+    check=`grep -i "shifted resonance frequency:" | awk '{printf $1}'`
+    if[ -z "$check" ]; then
 	Eres=$(awk "BEGIN {print $omres - $Vd_min + $E0}")
 	echo "shifted resonance frequency: $Eres"
 	echo "shifted reson. frequency: $Eres" >> $jobid.log
+    else
+	Eres=`grep -i "shifted resonance frequency:" | awk '{printf $4}'`
+	echo "shifted resonance frequency: $Eres"
+    fi
+
+    check=`grep -i "ground to final gap:" | awk '{printf $1}'`
+    if[ -z "$check" ]; then
 	Vgf_gap=$(awk "BEGIN {print $Vf_min - Vg_min}")
 	echo "ground to final gap: $Vgf_gap"
 	echo "ground to final gap: $Vgf_gap" >> $jobid.log
-
+    else
+	Vgf_gap=`grep -i "ground to final gap:" | awk '{printf $5}'`
+	echo "ground to final gap: $Vgf_gap"	
     fi
+  
 
     nfiles=`ls wf_data/ReIm_*.dat | awk '{printf $1"\n"}' | tail -1 | cut -c 14-17`
     last_file=`ls wf_data/ReIm_*.dat | awk '{printf $1"\n"}' | tail -1`

@@ -373,19 +373,36 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 	fi
 
     fi
-    
-    echo "Initial energy" $E0
-    echo "Initial energy" $E0 >> $jobid.log
-    omres=$(awk "BEGIN {print $Vd - $Vg_min - $E0}")
-    echo "resonance frequency: $omres"
-    echo "resonance frequency: $omres" >> $jobid.log
-    Eres=$(awk "BEGIN {print $omres - $Vd_min + $E0}")
-    echo "shifted resonance frequency: $Eres"
-    echo "shifted reson. frequency: $Eres" >> $jobid.log
-    Vgf_gap=$(awk "BEGIN {print $Vf_min - Vg_min}")
-    echo "ground to final gap: $Vgf_gap"
-    echo "ground to final gap: $Vgf_gap" >> $jobid.log
 
+    check=`grep -i "resonance frequency:" | awk '{printf $1}'`
+    if[ -z "$check" ]; then
+	omres=$(awk "BEGIN {print $Vd - $Vg_min - $E0}")
+	echo "resonance frequency: $omres"
+	echo "resonance frequency: $omres" >> $jobid.log
+    else
+	omres=`grep -i "resonance frequency:" | awk '{printf $3}'`
+	echo "resonance frequency: $omres"
+    fi
+
+    check=`grep -i "shifted resonance frequency:" | awk '{printf $1}'`
+    if[ -z "$check" ]; then
+	Eres=$(awk "BEGIN {print $omres - $Vd_min + $E0}")
+	echo "shifted resonance frequency: $Eres"
+	echo "shifted reson. frequency: $Eres" >> $jobid.log
+    else
+	Eres=`grep -i "shifted resonance frequency:" | awk '{printf $4}'`
+	echo "shifted resonance frequency: $Eres"
+    fi
+
+    check=`grep -i "ground to final gap:" | awk '{printf $1}'`
+    if[ -z "$check" ]; then
+	Vgf_gap=$(awk "BEGIN {print $Vf_min - Vg_min}")
+	echo "ground to final gap: $Vgf_gap"
+	echo "ground to final gap: $Vgf_gap" >> $jobid.log
+    else
+	Vgf_gap=`grep -i "ground to final gap:" | awk '{printf $5}'`
+	echo "ground to final gap: $Vgf_gap"	
+    fi
 
     nfiles=`ls wf_data/ReIm_*.dat | awk '{printf $1"\n"}' | tail -1 | cut -c 14-17`
     last_file=`ls wf_data/ReIm_*.dat | awk '{printf $1"\n"}' | tail -1`

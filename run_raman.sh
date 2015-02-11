@@ -92,6 +92,14 @@ else
     absrang=" "
 fi
 
+#shift_spectrum
+doshift=`grep -i -w shift $input | awk '{printf $1}'`
+if [ -z "$doshift" ]; then
+    doshift="n"
+else
+    doshift="y"
+fi
+
 #print level
 print_level=`grep -i -w print_level $input | awk '{printf $2}'`
 if [ -z "$print_level" ]; then
@@ -459,7 +467,7 @@ $absrang
 
 **SPECTRUM
 *FOURIER
- 14/
+ 12/
 *WINDOWING
 .SG
 1D-5/
@@ -470,7 +478,9 @@ EOF
 	time $espec > ${jobid}_$detun.out
 	sed -n "/Spectrum:/,/Spectrum done./p" ${jobid}_$detun.out | sed "/Spectrum/ d" | sed "/*/ d" | sed "/=/ d" > temp
 
-	
+	echo "propagation for detuning = $detun done!"
+	echo
+
 	num=`cat -n  ${jobid}_$detun.spec | tail -1 | awk '{printf $1}'`
 	norm=`head -1 $file | awk '{printf $8}'`
 	omres=`grep "resonance frequency:" $jobid.log | awk '{printf $3}'`
@@ -479,19 +489,24 @@ EOF
 	E0=`grep "Initial energy" $jobid.log | awk '{printf $3}'`
 	Vgf_gap=$(awk "BEGIN {print ($Vgf_gap - $E0) * 27.2114}")
 	omega=$(awk "BEGIN {print $omres + $detun}")
-	echo "shifting spectrum, omega=$omega eV"
-	shift=`awk "BEGIN {print $omres + $detun - $Vgf_gap}"`
-	cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec
-	cat temp | awk -v var="$shift" '{printf shift - $1 " " $2 "\n"}' > temp2
-	cat temp2 | awk -v var="$norm" '{printf $1 " " norm*$2 "\n"}' > ${jobid}_$detun.spec
-	#while read x y discard; do
-	#    awk "BEGIN {print $omres + $detun - $x -$Vgf_gap}" >> shiftedw
-	#done <  temp
-	#cat temp | awk "BEGIN {print $omres + $detun - $1 -$Vgf_gap}" > shiftedw
-	#cat temp | awk '{printf $1" "$2"\n"}' > ${jobid}_$detun.spec
-	rm temp temp2
+	echo "# spectrum, omega= $omega " > ${jobid}_$detun.spec
 
-	echo "propagation for detuning = $detun done!"
+	if [ "$doshift" == "y" ]; then
+	    while read x y discard; do
+		w=$(awk "BEGIN {print $shift - $x}")
+		Int=$(awk "BEGIN {print $norm * $y}")
+		echo "$w $Int" >> ${jobid}_$detun.spec
+	    done < temp
+	    #cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec
+	    #cat temp | awk "BEGIN {printf $shift - $1}" >> ${jobid}_$detun.spec
+	else
+	    cat temp | awk '{printf $1" "$2"\n"}' > ${jobid}_$detun.spec
+	fi
+	
+	rm temp
+
+	echo
+	echo "Final spectrum saved to ${jobid}_$detun.spec, omega = $omega"
 	echo
 
 	#----- cleaning up

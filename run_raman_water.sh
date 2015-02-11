@@ -99,6 +99,14 @@ else
     absrang=" "
 fi
 
+#shift_spectrum
+doshift=`grep -i -w shift $input | awk '{printf $1}'`
+if [ -z "$doshift" ]; then
+    doshift="n"
+else
+    doshift="y"
+fi
+
 #print level
 print_level=`grep -i -w print_level $input | awk '{printf $2}'`
 if [ -z "$print_level" ]; then
@@ -753,7 +761,7 @@ EOF
 
 	sed -n "/Final spectrum/,/End/p"  ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" > temp
 
-#${jobid}_$detun.spec
+	#${jobid}_$detun.spec
 	omres=`grep "resonance frequency:" $jobid.log | awk '{printf $3}'`
 	omres=$(awk "BEGIN {print $omres * 27.2114}")
 	Vgf_gap=`grep "ground to final gap:" $jobid.log | awk '{printf $5}'`
@@ -762,10 +770,23 @@ EOF
 	bE0=`grep -i -w  bE0 ${jobid}.log | awk '{printf $2}'`
 	bE0=$(awk "BEGIN {print $bE0 * 27.2114}")
 	omega=$(awk "BEGIN {print $omres + $detun}")
-	echo "shifting spectrum, omega=$omega eV"
-	shift=`awk "BEGIN {print $omres + $detun -$Vgf_gap + $bE0}"`
-	cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec
-	cat temp | awk -v var="$shift" '{printf shift - $1 " "$2"\n"}' > ${jobid}_$detun.spec
+	echo "# spectrum, omega= $omega " > ${jobid}_$detun.spec
+
+	if [ "$doshift"=="y" ]; then
+	    echo "shifting spectrum, omega=$omega eV"
+	    shift=`awk "BEGIN {print $omega -$Vgf_gap + $bE0}"`
+	    while read x y discard; do
+		w=$(awk "BEGIN {print $shift - $x}")
+		Int=$(awk "BEGIN {print $y}")
+		#Int=$(awk "BEGIN {print $norm * $y}")
+		echo "$w $Int" >> ${jobid}_$detun.spec
+	    done < temp
+	    #cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec
+	    #cat temp | awk "BEGIN {printf $shift - $1}" >> ${jobid}_$detun.spec
+	else
+	    cat temp | awk '{printf $1" "$2"\n"}' > ${jobid}_$detun.spec   
+	fi
+	
 	rm temp
 
 	echo

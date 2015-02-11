@@ -47,7 +47,7 @@ npoints=`grep -i -w npoints $input | sed "s/\<$work\>//g"`
 #-------------------------
 #
 initial_wf=`grep -i -w initial_wf $input | awk '{printf $2}'`
-if [ "$initial_wf" -eq ".CALC" ] || [ -z "$initial_wf" ]; then
+if [ "$initial_wf" == ".CALC" ] || [ -z "$initial_wf" ]; then
     initial_pot=`grep -i initial_pot $input | awk '{printf $2}'`
     mode='.CALC'
 else
@@ -90,6 +90,12 @@ else
     abs1=" "
     abstren=" "
     absrang=" "
+fi
+
+#print level
+print_level=`grep -i -w print_level $input | awk '{printf $2}'`
+if [ -z "$print_level" ]; then
+    print_level="essential"
 fi
 
 #---------------Initial Propagation---------------#
@@ -248,6 +254,11 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     Vf_min=`grep -i Vf_min $input | awk '{printf $2}'`
     Vd=`grep -i Vd_vert $input | awk '{printf $2}'`
 
+    if [ -f  "${jobid}.log" ]; then
+	echo "# starting log file" > ${jobid}.log
+    fi
+
+
     if [ -f "${jobid}_init.out" ]; then
 
 	E0=`grep '|     0        |' ${jobid}_init.out | awk '{printf $4}'`
@@ -266,33 +277,33 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 	fi
     fi
 
-    check=`grep -i "resonance frequency:" | awk '{printf $1}'`
-    if[ -z "$check" ]; then
+    check=`grep -i "resonance frequency:" ${jobid}.log | awk '{printf $1}'`
+    if [ -z "$check" ]; then
 	omres=$(awk "BEGIN {print $Vd - $Vg_min - $E0}")
 	echo "resonance frequency: $omres"
 	echo "resonance frequency: $omres" >> $jobid.log
     else
-	omres=`grep -i "resonance frequency:" | awk '{printf $3}'`
+	omres=`grep -i "resonance frequency:" ${jobid}.log | awk '{printf $3}'`
 	echo "resonance frequency: $omres"
     fi
 
-    check=`grep -i "shifted resonance frequency:" | awk '{printf $1}'`
-    if[ -z "$check" ]; then
+    check=`grep -i "shifted resonance frequency:" ${jobid}.log | awk '{printf $1}'`
+    if [ -z "$check" ]; then
 	Eres=$(awk "BEGIN {print $omres - $Vd_min + $E0}")
 	echo "shifted resonance frequency: $Eres"
 	echo "shifted reson. frequency: $Eres" >> $jobid.log
     else
-	Eres=`grep -i "shifted resonance frequency:" | awk '{printf $4}'`
+	Eres=`grep -i "shifted resonance frequency:" ${jobid}.log | awk '{printf $4}'`
 	echo "shifted resonance frequency: $Eres"
     fi
 
-    check=`grep -i "ground to final gap:" | awk '{printf $1}'`
-    if[ -z "$check" ]; then
+    check=`grep -i "ground to final gap:" ${jobid}.log | awk '{printf $1}'`
+    if [ -z "$check" ]; then
 	Vgf_gap=$(awk "BEGIN {print $Vf_min - Vg_min}")
 	echo "ground to final gap: $Vgf_gap"
 	echo "ground to final gap: $Vgf_gap" >> $jobid.log
     else
-	Vgf_gap=`grep -i "ground to final gap:" | awk '{printf $5}'`
+	Vgf_gap=`grep -i "ground to final gap:" ${jobid}.log | awk '{printf $5}'`
 	echo "ground to final gap: $Vgf_gap"	
     fi
   

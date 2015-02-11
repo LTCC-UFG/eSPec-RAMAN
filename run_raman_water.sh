@@ -54,7 +54,7 @@ npoints=`grep -i -w npoints $input | sed "s/\<$work\>//g"`
 #-------------------------
 #
 initial_wf=`grep -i -w initial_wf $input | awk '{printf $2}'`
-if [ "$initial_wf" -eq ".CALC" ] || [ -z "$initial_wf" ]; then
+if [ "$initial_wf" == ".CALC" ] || [ -z "$initial_wf" ]; then
     initial_pot=`grep -i initial_pot $input | awk '{printf $2}'`
     mode='.CALC'
 else
@@ -97,6 +97,12 @@ else
     abs1=" "
     abstren=" "
     absrang=" "
+fi
+
+#print level
+print_level=`grep -i -w print_level $input | awk '{printf $2}'`
+if [ -z "$print_level" ]; then
+    print_level="essential"
 fi
 
 #---------------Initial Propagation---------------#
@@ -187,12 +193,27 @@ $absrang
 EOF
 
     time $espec > ${jobid}_init.out
-    mkdir wf_data
+
+    if [ -d wf_data ]; then
+	echo "previous wf_data will b replaced"
+    else
+	mkdir wf_data
+    fi
     mv eigvc_*.dat ReIm_*.dat wf_data/
 
     echo 'Initial propagation done!'
     echo
     #-------------------------------------------------#
+
+    if [ "$print_level" == "minimal" ]; then
+	rm input.spc pot.inp
+	rm wf_data/eigvc_* movie.gplt veff_0001.dat
+    elif [ "$print_level" == "essential" ]; then
+	rm input.spc pot.inp
+	rm wf_data/eigvc_* movie.gplt veff_0001.dat
+    elif [ "$print_level" == "intermediate" ]; then
+	rm input.spc pot.inp movie.gplt veff_0001.dat
+    fi
 
 fi
 
@@ -338,12 +359,25 @@ EOF
     echo 'Finished Franck-Condon section'
     echo
 
+    if [ "$print_level" == "minimal" ]; then 
+	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp 
+    elif [ "$print_level" == "essential" ]; then
+	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp 
+    elif [ "$print_level" == "intermediate" ]; then
+	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp
+    fi
+
+
 fi
 
 if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cfin" ] ; then
     #---------------|Phi(0)> calculation--------------#
     echo 'Generating initial conditions for second propagation'
     echo
+
+    if [ -f  "${jobid}.log" ]; then
+	echo "# starting log file" > ${jobid}.log
+    fi
 
     # bending states variables
     nvc=`grep -i -w nvc $input | awk '{printf $2}'`
@@ -358,14 +392,24 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     if [ -f "${jobid}_init.out" ]; then
 
 	E0=`grep '|     0        |' ${jobid}_init.out | awk '{printf $4}'`
-	echo "Initial energy" $E0
-	echo "Initial energy" $E0 >> $jobid.log
+	if [ -z "$E0" ]; then
+	    E0=`grep -i -w "E0" $input | awk '{printf $2}'` 
+	fi
 
+	if [ -z "$E0" ]; then
+	    echo "could not find the value of E0"
+	    echo "if you are reading a initial wavefunction you did not provide E0"
+	    echo "please check your input"
+	    exit 666  
+	else
+	    echo "Initial energy" $E0
+	    echo "Initial energy" $E0 >> $jobid.log
+	fi
     else
 
 	echo "failed to find initial propagation output file ${jobid}_init.out"
 	echo "Attempting to read E0 from input file"
-	E0=`grep -i -w "E0" | awk '{printf $2}'`
+	E0=`grep -i -w "E0" $input | awk '{printf $2}'`
 	if [ -z "$E0" ]; then
 	    echo "could not find the value of E0"
 	    echo "please check your input"
@@ -374,33 +418,33 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 
     fi
 
-    check=`grep -i "resonance frequency:" | awk '{printf $1}'`
-    if[ -z "$check" ]; then
+    check=`grep -i "resonance frequency:" ${jobid}.log | awk '{printf $1}'`
+    if [ -z "$check" ]; then
 	omres=$(awk "BEGIN {print $Vd - $Vg_min - $E0}")
 	echo "resonance frequency: $omres"
 	echo "resonance frequency: $omres" >> $jobid.log
     else
-	omres=`grep -i "resonance frequency:" | awk '{printf $3}'`
+	omres=`grep -i "resonance frequency:" ${jobid}.log | awk '{printf $3}'`
 	echo "resonance frequency: $omres"
     fi
 
-    check=`grep -i "shifted resonance frequency:" | awk '{printf $1}'`
-    if[ -z "$check" ]; then
+    check=`grep -i "shifted resonance frequency:" ${jobid}.log | awk '{printf $1}'`
+    if [ -z "$check" ]; then
 	Eres=$(awk "BEGIN {print $omres - $Vd_min + $E0}")
 	echo "shifted resonance frequency: $Eres"
 	echo "shifted reson. frequency: $Eres" >> $jobid.log
     else
-	Eres=`grep -i "shifted resonance frequency:" | awk '{printf $4}'`
+	Eres=`grep -i "shifted resonance frequency:" ${jobid}.log | awk '{printf $4}'`
 	echo "shifted resonance frequency: $Eres"
     fi
 
-    check=`grep -i "ground to final gap:" | awk '{printf $1}'`
-    if[ -z "$check" ]; then
+    check=`grep -i "ground to final gap:" ${jobid}.log | awk '{printf $1}'`
+    if [ -z "$check" ]; then
 	Vgf_gap=$(awk "BEGIN {print $Vf_min - Vg_min}")
 	echo "ground to final gap: $Vgf_gap"
 	echo "ground to final gap: $Vgf_gap" >> $jobid.log
     else
-	Vgf_gap=`grep -i "ground to final gap:" | awk '{printf $5}'`
+	Vgf_gap=`grep -i "ground to final gap:" ${jobid}.log | awk '{printf $5}'`
 	echo "ground to final gap: $Vgf_gap"	
     fi
 
@@ -482,6 +526,18 @@ EOF
     echo
     echo 'initial conditions generated!'
     echo
+
+    if [ "$print_level" == "minimal" ]; then 
+	rm raman.inp ${jobid}_raman_Evc*.out wp2_*
+	rm -r wf_data fft_check_in.dat fft_check_out.dat
+	rm ${jobid}_init.out
+    elif [ "$print_level" == "essential" ]; then
+	rm raman.inp ${jobid}_raman_Evc*.out wp2_*
+	rm fft_check_in.dat fft_check_out.dat
+    elif [ "$print_level" == "intermediate" ]; then
+	rm raman.inp wp2_*
+	rm fft_check_in.dat fft_check_out.dat
+    fi
 
     #-------------------------------------------------#
 fi
@@ -602,11 +658,26 @@ EOF
 	done
     done
 
-    echo "corr_np $corr_np" >> ${jobid}.log
+    check=`grep -i -w "corr_np" ${jobid}.log | awk '{printf $1}'`
+    if [ -z "$check" ]; then
+	echo "corr_np $corr_np" >> ${jobid}.log
+    fi
 
     rm ReIm_*
 
     echo "All correlation functions computed!"
+
+    #--- cleaning up
+    if [ "$print_level" == "minimal" ]; then 
+	rm correl.inp  ${jobid}_vc*_*.out inwf_*.dat wp-vc*_*.inp
+	rm  input.spc wp-vc*_*.dat inwf.dat ${jobid}-correl_vc*_*.out
+    elif [ "$print_level" == "essential" ]; then
+	rm correl.inp input.spc inwf_*.dat wp-vc*_*.inp inwf.dat
+	rm ${jobid}-correl_vc*_*.out
+    elif [ "$print_level" == "intermediate" ]; then
+	rm correl.inp input.spc inwf_*.dat wp-vc*_*.inp inwf.dat
+    fi
+
 
     #num=`cat -n  bkp-${jobid}_$detun.spec | tail -1 | awk '{printf $1}'`
     #norm=`head -1 $file | awk '{printf $8}'`
@@ -670,10 +741,6 @@ EOF
 
 	time $fcorrel > ${jobid}-final_csection_$detun.out
 
-	echo
-	echo "output saved to ${jobid}-final_csection_$detun.out"
-	echo
-
 	sed -n "/Final spectrum/,/End/p"  ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" > ${jobid}_$detun.spec
 
 	echo
@@ -681,6 +748,16 @@ EOF
 	echo
 
     done
+
+    #--- cleaning up
+    if [ "$print_level" == "minimal" ]; then 
+	rm correl.inp ${jobid}-final_csection_*.out fcond.dat fcorrel_*dat
+	rm intens_*.dat fc_vcvf.out fc_0vc.out
+    elif [ "$print_level" == "essential" ]; then
+	rm correl.inp ${jobid}-final_csection_*.out fcond.dat
+    elif [ "$print_level" == "intermediate" ]; then
+	rm correl.inp fcond.dat
+    fi
 
 fi
 

@@ -186,12 +186,27 @@ $absrang
 EOF
 
     time $espec > ${jobid}_init.out
-    mkdir wf_data
+
+    if [ -d wf_data ]; then
+	echo "previous wf_data will b replaced"
+    else
+	mkdir wf_data
+    fi
     mv eigvc_*.dat ReIm_*.dat wf_data/
 
     echo 'Initial propagation done!'
     echo
     #-------------------------------------------------#
+
+    if [ "$print_level" == "minimal" ]; then
+	rm input.spc pot.inp
+	rm wf_data/eigvc_* movie.gplt veff_0001.dat
+    elif [ "$print_level" == "essential" ]; then
+	rm input.spc pot.inp
+	rm wf_data/eigvc_* movie.gplt veff_0001.dat
+    elif [ "$print_level" == "intermediate" ]; then
+	rm input.spc pot.inp movie.gplt veff_0001.dat
+    fi
 
 fi
 
@@ -262,9 +277,19 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     if [ -f "${jobid}_init.out" ]; then
 
 	E0=`grep '|     0        |' ${jobid}_init.out | awk '{printf $4}'`
-	echo "Initial energy" $E0
-	echo "Initial energy" $E0 >> $jobid.log
+	if [ -z "$E0" ]; then
+	    E0=`grep -i -w "E0" $input | awk '{printf $2}'` 
+	fi
 
+	if [ -z "$E0" ]; then
+	    echo "could not find the value of E0"
+	    echo "if you are reading a initial wavefunction you did not provide E0"
+	    echo "please check your input"
+	    exit 666  
+	else
+	    echo "Initial energy" $E0
+	    echo "Initial energy" $E0 >> $jobid.log
+	fi
     else
 
 	echo "failed to find initial propagation output file ${jobid}_init.out"
@@ -342,6 +367,26 @@ EOF
     echo 'initial conditions generated!'
     echo
 
+    all_detunings_files=`ls wp_* | cat | cut  -f2 -d"_" | sed "s/.dat//" | awk '{printf $1" "}'`
+    #------------------->>
+    check=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
+    if [ -z "$check" ]; then
+	echo "detun" $all_detunings_files >> ${jobid}.log
+    fi
+    #------------------->>
+    
+    # cleaning up -----
+    if [ "$print_level" == "minimal" ]; then 
+	rm raman.inp ${jobid}_init.out wp2_*
+	rm -r wf_data fft_check_in.dat fft_check_out.dat
+    elif [ "$print_level" == "essential" ]; then
+	rm raman.inp ${jobid}_init.out wp2_*
+	rm -r wf_data fft_check_in.dat fft_check_out.dat
+    elif [ "$print_level" == "intermediate" ]; then
+	rm raman.inp wp2_*
+	rm fft_check_in.dat fft_check_out.dat
+    fi
+
     #-------------------------------------------------#
 fi
 
@@ -350,13 +395,16 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fin" ] || [ "$runtype" == "-cfi
     #---------------Final Propagation-----------------#
     echo ' Starting final propagation'
 
-    for detun in `echo $all_detunings`
+    work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
+    all_detunings_files=`grep -i -w detun ${jobid}.log | sed "s/\<$work\>//g"`
+
+    for detun in `echo $all_detunings_files`
     do
 	
 	echo "running detuning = $detun"
 
-	detun2=${detun}00000
-	file=wp_$detun2.dat
+	#detun2=${detun}00000
+	file=wp_$detun.dat
 
 	cat $final_pot >> $file
 
@@ -421,22 +469,42 @@ EOF
 
 	time $espec > ${jobid}_$detun.out
 	sed -n "/Spectrum:/,/Spectrum done./p" ${jobid}_$detun.out | sed "/Spectrum/ d" | sed "/*/ d" | sed "/=/ d" > temp
-	cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec
-	rm temp
 
-	echo "propagation for detuning = $detun done!"
-	echo
-
-
-	num=`cat -n  bkp-${jobid}_$detun.spec | tail -1 | awk '{printf $1}'`
+	
+	num=`cat -n  ${jobid}_$detun.spec | tail -1 | awk '{printf $1}'`
 	norm=`head -1 $file | awk '{printf $8}'`
 	omres=`grep "resonance frequency:" $jobid.log | awk '{printf $3}'`
 	omres=$(awk "BEGIN {print $omres * 27.2114}")
 	Vgf_gap=`grep "ground to final gap:" $jobid.log | awk '{printf $5}'`
 	E0=`grep "Initial energy" $jobid.log | awk '{printf $3}'`
 	Vgf_gap=$(awk "BEGIN {print ($Vgf_gap - $E0) * 27.2114}")
-	echo "$num $omres $detun $Vgf_gap $norm bkp-${jobid}_$detun.spec " > sinp
-	./sshift < sinp > ${jobid}_$detun.spec
+	omega=$(awk "BEGIN {print $omres + $detun}")
+	echo "shifting spectrum, omega=$omega eV"
+	shift=`awk "BEGIN {print $omres + $detun - $Vgf_gap}"`
+	cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec
+	cat temp | awk -v var="$shift" '{printf shift - $1 " " $2 "\n"}' > temp2
+	cat temp2 | awk -v var="$norm" '{printf $1 " " norm*$2 "\n"}' > ${jobid}_$detun.spec
+	#while read x y discard; do
+	#    awk "BEGIN {print $omres + $detun - $x -$Vgf_gap}" >> shiftedw
+	#done <  temp
+	#cat temp | awk "BEGIN {print $omres + $detun - $1 -$Vgf_gap}" > shiftedw
+	#cat temp | awk '{printf $1" "$2"\n"}' > ${jobid}_$detun.spec
+	rm temp temp2
+
+	echo "propagation for detuning = $detun done!"
+	echo
+
+	#----- cleaning up
+	if [ "$print_level" == "minimal" ]; then 
+	    rm input.spc ${jobid}_$detun.out
+	elif [ "$print_level" == "essential" ]; then
+	    rm  input.spc ${jobid}_$detun.out
+	elif [ "$print_level" == "intermediate" ]; then
+	    rm input.spc
+	fi
+
+	#echo "$num $omres $detun $Vgf_gap $norm bkp-${jobid}_$detun.spec " > sinp
+	#./sshift < sinp > ${jobid}_$detun.spec
 
     done
 

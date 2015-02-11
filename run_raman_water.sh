@@ -471,6 +471,10 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
     echo
     echo "Bending ground state energy bE0 = $bE0"
+    check=`grep -i -w  bE0 ${jobid}.log | awk '{printf $1}'`
+    if [ -z "$check" ]; then
+	echo "bE0 $bE0" >> ${jobid}.log
+    fi
   
     for (( i=0 ; i < ${nvc} ; i++ )); do
 
@@ -506,7 +510,12 @@ EOF
 
 	all_detunings_files=`ls wp_* | cat | cut  -f2 -d"_" | sed "s/.dat//" | awk '{printf $1" "}'`
 	if [ "$i" -eq "0" ]; then
-	    echo "detun" $all_detunings_files >> ${jobid}.log
+	    #------------------->>
+	    check=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
+	    if [ -z "$check" ]; then
+		echo "detun" $all_detunings_files >> ${jobid}.log
+	    fi
+	    #------------------->>
 	fi
 
 	#echo "$all_detunings_files"
@@ -527,6 +536,7 @@ EOF
     echo 'initial conditions generated!'
     echo
 
+    # cleaning up ------
     if [ "$print_level" == "minimal" ]; then 
 	rm raman.inp ${jobid}_raman_Evc*.out wp2_*
 	rm -r wf_data fft_check_in.dat fft_check_out.dat
@@ -741,7 +751,22 @@ EOF
 
 	time $fcorrel > ${jobid}-final_csection_$detun.out
 
-	sed -n "/Final spectrum/,/End/p"  ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" > ${jobid}_$detun.spec
+	sed -n "/Final spectrum/,/End/p"  ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" > temp
+
+#${jobid}_$detun.spec
+	omres=`grep "resonance frequency:" $jobid.log | awk '{printf $3}'`
+	omres=$(awk "BEGIN {print $omres * 27.2114}")
+	Vgf_gap=`grep "ground to final gap:" $jobid.log | awk '{printf $5}'`
+	E0=`grep "Initial energy" $jobid.log | awk '{printf $3}'`
+	Vgf_gap=$(awk "BEGIN {print ($Vgf_gap - $E0) * 27.2114}")
+	bE0=`grep -i -w  bE0 ${jobid}.log | awk '{printf $2}'`
+	bE0=$(awk "BEGIN {print $bE0 * 27.2114}")
+	omega=$(awk "BEGIN {print $omres + $detun}")
+	echo "shifting spectrum, omega=$omega eV"
+	shift=`awk "BEGIN {print $omres + $detun -$Vgf_gap + $bE0}"`
+	cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec
+	cat temp | awk -v var="$shift" '{printf shift - $1 " "$2"\n"}' > ${jobid}_$detun.spec
+	rm temp
 
 	echo
 	echo "Final spectrum saved to ${jobid}_$detun.spec"

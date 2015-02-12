@@ -196,7 +196,7 @@ EOF
     time $espec > ${jobid}_init.out
 
     if [ -d wf_data ]; then
-	echo "previous wf_data will b replaced"
+	echo "previous wf_data will be replaced"
     else
 	mkdir wf_data
     fi
@@ -481,7 +481,6 @@ EOF
 	echo "propagation for detuning = $detun done!"
 	echo
 
-	num=`cat -n  ${jobid}_$detun.spec | tail -1 | awk '{printf $1}'`
 	norm=`head -1 $file | awk '{printf $8}'`
 	omres=`grep "resonance frequency:" $jobid.log | awk '{printf $3}'`
 	omres=$(awk "BEGIN {print $omres * 27.2114}")
@@ -506,7 +505,7 @@ EOF
 	rm temp
 
 	echo
-	echo "Final spectrum saved to ${jobid}_$detun.spec, omega = $omega"
+	echo "Final spectrum saved to ${jobid}_$detun.spec, omega = $omega eV"
 	echo
 
 	#----- cleaning up

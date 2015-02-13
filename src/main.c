@@ -309,7 +309,7 @@ int main(){
   for(k=0;k<nEf;k++){
 
     while(Ef[k]/27.2114 + Ereso < Ei && k < nEf){
-      printf("chosen detuning value %lf is out of the FFT range!\n");
+      printf("chosen detuning value %lf is out of the FFT range!\n",Ef[k]/27.2114 + Ereso);
       k = k + 1;
     }
     if(k > nEf) break;

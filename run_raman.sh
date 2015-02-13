@@ -501,7 +501,7 @@ EOF
 	if [ "$doshift" == "y" ]; then
 	    while read x y discard; do
 		w=$(awk "BEGIN {print $shift - $x}")
-		Int=$(awk "BEGIN {print $norm * $y}")
+		Int=$(awk "BEGIN {print $norm * $norm * $y}")
 		echo "$w $Int" >> ${jobid}_$detun.spec
 	    done < temp
 	    #cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec

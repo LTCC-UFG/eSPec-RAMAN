@@ -92,6 +92,14 @@ else
     absrang=" "
 fi
 
+# fft supergaussian window of the final spectrum
+window=`grep -i -w window $input | awk '{printf $1}'`
+if [ -z "$window" ]; then
+    window="1D-5"
+else
+    window=`grep -i -w window $input | awk '{printf $2}'`
+fi
+
 #shift_spectrum
 doshift=`grep -i -w shift $input | awk '{printf $1}'`
 if [ -z "$doshift" ]; then
@@ -470,7 +478,7 @@ $absrang
  12/
 *WINDOWING
 .SG
-1D-5/
+$window/
 
 **END
 EOF
@@ -489,7 +497,7 @@ EOF
 	Vgf_gap=$(awk "BEGIN {print ($Vgf_gap - $E0) * 27.2114}")
 	omega=$(awk "BEGIN {print $omres + $detun}")
 	echo "# spectrum, omega= $omega " > ${jobid}_$detun.spec
-
+	shift=`awk "BEGIN {print $omega -$Vgf_gap}"`
 	if [ "$doshift" == "y" ]; then
 	    while read x y discard; do
 		w=$(awk "BEGIN {print $shift - $x}")

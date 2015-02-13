@@ -202,6 +202,8 @@ EOF
 
     time $espec > ${jobid}_init.out
 
+    cp ReIm_0001.dat  st_0.dat
+
     if [ -d wf_data ]; then
 	echo "previous wf_data will b replaced"
     else
@@ -753,7 +755,7 @@ franckcondon fcond.dat
 fcorrel fcorrel_$detun.dat
 Fourier 11
 Window
-.SGAUSS 1e-4
+.SGAUSS 1e-5
 
 EOF
 

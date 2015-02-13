@@ -12,6 +12,9 @@ FFLAGS=-traceback -fast
 #gfortran flags
 #FFLAGS=-O3
 CFLAGS=-O3 
+#triolith flags
+#CFLAGS=-O3 -I/software/apps/fftw/3.3.2/i1214/include -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3
+#FFLAGS=-traceback -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3
 
 all: main
 

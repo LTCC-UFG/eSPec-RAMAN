@@ -12,11 +12,14 @@ FFLAGS=-traceback -fast
 #gfortran flags
 #FFLAGS=-O3
 CFLAGS=-O3 
+#triolith flags
+#CFLAGS=-O3 -I/software/apps/fftw/3.3.2/i1214/include -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3
+#FFLAGS=-traceback -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3
 
 all: main
 
 main: src/main.o src/rdinput.o src/readallspl.o src/splinesurf.o src/fourier.o
-	$(FC) $(FFLAGS) -o $(PROG) src/main.o src/rdinput.o src/readallspl.o src/splinesurf.o src/fourier.o -lfftw3 -lgsl -lgslcblas
+	$(FC) $(FFLAGS) -o $(PROG) src/main.o src/rdinput.o src/readallspl.o src/splinesurf.o src/fourier.o -lfftw3
 
 main.o: src/main.c
 	$(CC) $(CFLAGS) -c src/main.c
@@ -28,7 +31,7 @@ splinesurf.o: src/splinesurf.f src/splinesurf.h
 	$(FC) $(FFLAGS) -c src/splinesurf.f
 
 fourier.o: src/fourier.c src/fourier.h
-	$(CC) $(CFLAGS) -c src/fourier.c -lfftw3 -lm
+	$(CC) $(CFLAGS) -c src/fourier.c 
 
 clean:
 	rm *~ src/*~ src/*.o

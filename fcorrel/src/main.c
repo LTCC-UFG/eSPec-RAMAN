@@ -393,7 +393,9 @@ int main(){
       t = fabs(t);
 
       if(strncasecmp(windtype,".SGAUSS",7)==0){
-	taux = pow(T[nf-1],2)/(log(1.000/width)/log(M_E));
+	//TAUX = TMAX**2/(LOG(ONE/WP))**2 espec
+	//taux = pow(T[nf-1],2)/(log(1.000/width)/log(M_E));
+	taux = pow(T[nf-1],2)/pow(log(1.000/width),2);
 	window = exp(-pow(t,2)/taux);
       }else if(strncasecmp(windtype,".EXPDEC",7)==0) window = exp(-width*t);
 

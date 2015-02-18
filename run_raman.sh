@@ -484,7 +484,7 @@ $window/
 EOF
 
 	time $espec > ${jobid}_$detun.out
-	sed -n "/Spectrum:/,/Spectrum done./p" ${jobid}_$detun.out | sed "/Spectrum/ d" | sed "/*/ d" | sed "/=/ d" > temp
+	sed -n "/Spectrum:/,/Spectrum done./p" ${jobid}_$detun.out | sed "/Spectrum/ d" | sed "/*/ d" | sed "/=/ d" | sed '/^\s*$/d' > temp
 
 	echo "propagation for detuning = $detun done!"
 	echo

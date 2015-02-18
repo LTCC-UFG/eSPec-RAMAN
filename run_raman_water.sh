@@ -48,6 +48,16 @@ input=$2
 jobid=`grep -i jobid $input | awk '{printf $2}'`
 # dimension .1D .2D .2DCT
 dim=`grep -i dimens $input | awk '{printf $2}'`
+# if .2DCT is inputed, then we need the value of the cross term cos(\theta)
+if [ "$dim" == ".2DCT" ]; then
+    cross=`grep -i -w cross_term $input | awk '{printf $2}'`
+    crosskey="*CROSS_TERM"
+    if [ -z "$cross" ]; then
+	echo "dimension .2DCT, but failed to read cos(\theta) cross term value"
+	echo "please, check your input"
+	exit 666
+    fi
+fi
 # number of discretization points used. for .2D use npoints="n1 n2"
 work=`grep -i -w npoints $input | awk '{printf $1}'`
 npoints=`grep -i -w npoints $input | sed "s/\<$work\>//g"`
@@ -98,6 +108,15 @@ else
     abstren=" "
     absrang=" "
 fi
+
+# fft supergaussian window of the final spectrum
+window=`grep -i -w window $input | awk '{printf $1}'`
+if [ -z "$window" ]; then
+    window="1e-5"
+else
+    window=`grep -i -w window $input | awk '{printf $2}'`
+fi
+
 
 #shift_spectrum
 doshift=`grep -i -w shift $input | awk '{printf $1}'`
@@ -168,6 +187,8 @@ $mode
 .NO
 *PRTEIGVC2
 .YES
+$crosskey
+$cross/
 
 
 **TI
@@ -619,6 +640,8 @@ $mass/
 *PRTEIGVC2
 .YES
 *PRTONLYREIM
+$crosskey
+$cross/
 
 **TD
 *PROPAG
@@ -755,13 +778,13 @@ franckcondon fcond.dat
 fcorrel fcorrel_$detun.dat
 Fourier 11
 Window
-.SGAUSS 1e-5
+.SGAUSS $window
 
 EOF
 
 	time $fcorrel > ${jobid}-final_csection_$detun.out
 
-	sed -n "/Final spectrum/,/End/p"  ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" > temp
+	sed -n "/Final spectrum/,/End/p"  ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' > temp
 
 	#${jobid}_$detun.spec
 	omres=`grep "resonance frequency:" $jobid.log | awk '{printf $3}'`
@@ -789,7 +812,7 @@ EOF
 	    cat temp | awk '{printf $1" "$2"\n"}' > ${jobid}_$detun.spec   
 	fi
 	
-	rm temp
+	#rm temp
 
 	echo
 	echo "Final spectrum saved to ${jobid}_$detun.spec"

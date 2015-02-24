@@ -516,6 +516,8 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 	echo "associated shift, -Evc$i + bE0 = ${shift[$i]}"
 	echo
 
+	
+
 	cat > raman.inp <<EOF
 # eSPec-Raman input
 

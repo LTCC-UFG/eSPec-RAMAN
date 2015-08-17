@@ -61,7 +61,7 @@ int main(){
   fftw_plan p;
   clock_t begint,endt;
   double timediff,window,taux;
-  FILE *wpin,*fcf,*fcorr;
+  FILE *wpin,*fcf,*fcorr,*deb2;
 
 
   //--- Default values
@@ -290,6 +290,10 @@ int main(){
     fclose(fcf);
 
 
+    printf("\n");
+    printf("final state bending energy values:\n");
+    for(i=0;i<nvf;i++) printf(" Evf%i = %E , ",i,Evf[i]);
+    printf("\n");
 
     printf("\n> Franck-Condon Section finished \n");
 
@@ -312,6 +316,7 @@ int main(){
     for(j=0;j<nvc;j++){
       for(ii=0;ii<nf;ii++){
 	fscanf(fcorr,"%lf",&T[ii]);
+	T[ii] = T[ii] * 41.3413745758e+0;
 	for(l=0;l<nvc;l++){
 	  k = l + j*nvc;
 	  fscanf(fcorr,"%lf %lf",&fcorrelRe[k][ii],&fcorrelIm[k][ii]);
@@ -330,6 +335,10 @@ int main(){
       tfcorrelIm[ii] = 0.0e+0;
     }
 
+    
+    //debug viktor problem
+    deb2=fopen("debug2.dat","w");
+
     // eq. (51) from file
     for(i=0;i<nvf;i++){
       for(j=0;j<nvc;j++){
@@ -338,10 +347,14 @@ int main(){
 	  // franck-condon factors
 	  FC = FCGVc[l]*FCVcVf[l][i]*FCVcVf[j][i]*FCGVc[j];
 	  // we multiply by the intensity, due to previous normalization of wf in the energy domain
-          FC = FC * intens[j]*intens[l];
+	  fprintf(deb2,"vf = %d, vc = %d vc' = %d (%d), FC = %E \n",i,j,l,k,FC);
+	  //FC = FC * intens[j]*intens[l];
 	  for(ii=0;ii<nf;ii++){
 	    tfcorrelRe[ii] = tfcorrelRe[ii] + FC*(fcorrelRe[k][ii]*cos(Evf[i]*T[ii]) + fcorrelIm[k][ii]*sin(Evf[i]*T[ii]) );
 	    tfcorrelIm[ii] = tfcorrelIm[ii] + FC*(fcorrelIm[k][ii]*cos(Evf[i]*T[ii]) - fcorrelRe[k][ii]*sin(Evf[i]*T[ii]) );
+	    //debug below
+	    //tfcorrelRe[ii] = tfcorrelRe[ii] + FC*fcorrelRe[k][ii];
+	    //tfcorrelIm[ii] = tfcorrelIm[ii] + FC*fcorrelIm[k][ii];
 	  }
 	}
       }
@@ -364,7 +377,7 @@ int main(){
     Ei = -NTG*stepE/(2.0E+0);
     nE =  NTG;
 
-    printf("\nAuto-Correlation Function will be ajusted for Fourier Transform using splines \n");
+    printf("\nAuto-Correlation Function will be adjusted for Fourier Transform using splines \n");
     printf("\nFourier parameters \n");
     printf("npoints: 2^%d = %d\n",twopow,NTG);
     printf("time step: %lf fs \n",steptspl);
@@ -397,8 +410,12 @@ int main(){
 	//taux = pow(T[nf-1],2)/(log(1.000/width)/log(M_E));
 	taux = pow(T[nf-1],2)/pow(log(1.000/width),2);
 	window = exp(-pow(t,2)/taux);
-      }else if(strncasecmp(windtype,".EXPDEC",7)==0) window = exp(-width*t);
+      }else if(strncasecmp(windtype,".EXPDEC",7)==0){
+	window = exp(-width*t);
+      }
 
+      //debug
+      //window=1.000;
       workin[i][0] =   window*dbsval_ (&t,&kx,tknot,&nf,bcoefre);
       workin[i][1] = s*window*dbsval_ (&t,&kx,tknot,&nf,bcoefim);
       fprintf(deb,"%lf %lf \n",workin[i][0], workin[i][1]);

@@ -498,6 +498,7 @@ EOF
 	omega=$(awk "BEGIN {print $omres + $detun}")
 	echo "# spectrum, omega= $omega " > ${jobid}_$detun.spec
 	shift=`awk "BEGIN {print $omega -$Vgf_gap}"`
+	echo $shift
 	if [ "$doshift" == "y" ]; then
 	    while read x y discard; do
 		w=$(awk "BEGIN {print $shift - $x}")

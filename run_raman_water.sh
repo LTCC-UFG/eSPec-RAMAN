@@ -212,7 +212,7 @@ $cross/
 *NPROJECTIONS
  6  1
 *FOURIER
- 14/
+ 15/
 $abs
 $abs1
 $abstren
@@ -601,6 +601,10 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fin" ] || [ "$runtype" == "-cfi
 
     for detun in `echo $all_detunings_files`
     do
+	if [ -f "fcorrel_$detun.dat" ]; then
+	    rm fcorrel_$detun.dat
+	fi
+
 	for ((i=0 ; i < $nvc ; i++));  do  
 
 	    echo "running vc $i and detuning = $detun"
@@ -657,6 +661,8 @@ $cross/
  3.0D0/
 *NPROJECTIONS
  6  1
+*FOURIER
+ 15/
 $abs
 $abs1
 $abstren

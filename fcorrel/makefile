@@ -8,7 +8,9 @@ CC=gcc
 FC=ifort -nofor_main
 #FC=gfortran
 #ifort flags
-FFLAGS=-traceback -fast
+# -fast conflicts with -mcmodel
+FFLAGS=-traceback -mcmodel medium -shared-intel
+#FFLAGS=-traceback -fast
 #gfortran flags
 #FFLAGS=-O3
 CFLAGS=-O3 

@@ -373,7 +373,8 @@ int main(){
     //NTG = pow(2,twopow+1);
     NTG = pow(2,twopow);
     steptspl=(2.0*T[nf-1])/NTG;
-    stepE = 2*M_PI/(NTG*FSAU(steptspl));
+    //stepE = 2*M_PI/(NTG*FSAU(steptspl));
+    stepE = 2*M_PI/(NTG*steptspl);
     Ei = -NTG*stepE/(2.0E+0);
     nE =  NTG;
 

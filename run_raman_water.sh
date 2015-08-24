@@ -41,6 +41,14 @@ runtype=$1
 #
 # -cross 
 # 
+#
+############################3
+#
+# -xas X-ray Absorpotion Spectrum considering the 2D+1D model
+#
+#
+
+
 
 #-----------General input parameters---------------#
 input=$2

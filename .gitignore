@@ -26,3 +26,24 @@
 *.exe
 *.out
 *.app
+
+#emacs temp files
+*~
+#latex files
+*.aux
+*.log
+*.tex
+
+#directories
+fcorrel/test/
+final_tests/
+TI_code/
+test-2D-new/
+test-2D/
+test-cs2-1d/
+test-hcl/
+test-newfourier/
+test-water/
+test/
+viktor-problem/
+bending-mode-effect/

@@ -44,7 +44,7 @@ runtype=$1
 #
 ############################3
 #
-# -xas X-ray Absorpotion Spectrum considering the 2D+1D model
+# -xas X-ray Absorpotion Spectrum considering the 2D+1D model (this option also runs the -fc step from above)
 #
 #
 
@@ -257,7 +257,7 @@ EOF
 fi
 
 
-if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] ; then
+if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ]; then
 
     #---------------Franck-Condon--------------#
 
@@ -847,6 +847,103 @@ EOF
     fi
 
 fi
+
+
+### -------- 2D+1D XAS
+
+if [ "$runtype" == "-xas" ]; then
+    echo "XAS cross section"
+
+    nvc=`grep -i -w nvc $input | awk '{printf $2}'`
+    nvf=`grep -i -w nvf $input | awk '{printf $2}'`
+    work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
+    all_detunings_files=`grep -i -w detun ${jobid}.log | sed "s/\<$work\>//g"`
+    corr_np=`grep -i -w corr_np ${jobid}.log | awk '{printf $2}'`
+
+    for ((i=0 ; i < $nvf ; i++)); do
+	Evc=`sed -n "/from final state/,/Spectrum/p" fc_0vc.out | grep "|     $i        |" | awk '{printf $4}'`
+	echo $Evc >> Evc.dat
+    done
+
+    Evc=`cat Evf.dat | awk '{printf $1" "}'`
+    rm Evc.dat
+
+    echo "Core-excited bending energies " $Evc
+
+    for detun in `echo $all_detunings_files`
+    do
+
+	cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat #FOR XAS WE ONLY NEED GROUND->CORE FC FACTORS
+	cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat # CHECK THIS <<< 
+
+	cat > correl.inp <<EOF
+# XAS cross section input
+
+*Main
+runtype: xas-spectrum
+corr_np $corr_np
+
+*crosssection
+vc $nvc
+Evc $Evc
+franckcondon fcond.dat
+fcorrel fcorrel_$detun.dat
+Fourier 11
+Window
+.SGAUSS $window
+
+EOF
+
+	time $fcorrel > ${jobid}-xas_csection_$detun.out
+
+	sed -n "/Final spectrum/,/End/p"  ${jobid}-xas_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' > temp
+
+	#${jobid}_$detun.spec
+	omres=`grep "resonance frequency:" $jobid.log | awk '{printf $3}'`
+	omres=$(awk "BEGIN {print $omres * 27.2114}")
+	Vgf_gap=`grep "ground to final gap:" $jobid.log | awk '{printf $5}'`
+	E0=`grep "Initial energy" $jobid.log | awk '{printf $3}'`
+	Vgf_gap=$(awk "BEGIN {print ($Vgf_gap - $E0) * 27.2114}")
+	bE0=`grep -i -w  bE0 ${jobid}.log | awk '{printf $2}'`
+	bE0=$(awk "BEGIN {print $bE0 * 27.2114}")
+	omega=$(awk "BEGIN {print $omres + $detun}")
+	echo "# spectrum, omega= $omega " > ${jobid}_$detun.spec
+
+	if [ "$doshift"=="y" ]; then
+	    echo "shifting spectrum, omega=$omega eV"
+	    shift=`awk "BEGIN {print $omega -$Vgf_gap + $bE0}"`
+	    while read x y discard; do
+		w=$(awk "BEGIN {print $shift - $x}")
+		Int=$(awk "BEGIN {print $y}")
+		#Int=$(awk "BEGIN {print $norm * $y}")
+		echo "$w $Int" >> ${jobid}_$detun.spec
+	    done < temp
+	    #cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec
+	    #cat temp | awk "BEGIN {printf $shift - $1}" >> ${jobid}_$detun.spec
+	else
+	    cat temp | awk '{printf $1" "$2"\n"}' > ${jobid}_$detun.spec   
+	fi
+	
+	#rm temp
+
+	echo
+	echo "XAS spectrum saved to ${jobid}_xas-$detun.spec"
+	echo
+
+    done
+
+    #--- cleaning up
+    if [ "$print_level" == "minimal" ]; then 
+	rm correl.inp ${jobid}-xas_csection_*.out fcond.dat fcorrel_*dat
+	rm intens_*.dat fc_vcvf.out fc_0vc.out
+    elif [ "$print_level" == "essential" ]; then
+	rm correl.inp ${jobid}-xas_csection_*.out fcond.dat
+    elif [ "$print_level" == "intermediate" ]; then
+	rm correl.inp fcond.dat
+    fi
+
+fi
+
 
 echo
 echo 'eSPec-Raman script finished'

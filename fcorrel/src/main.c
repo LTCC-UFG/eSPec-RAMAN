@@ -29,7 +29,7 @@ Goiania, 01st of February of 2015
 #define Me    9.10938188E-31 //mass of electron in Kg
 #define FSAU(x) (x)*41.3413745758e+0 ///0.024189E+0 //fs to au units of time conversion                        mtrxdiag_ (char *dim, int *il, int *iu, int *info, int *mxdct, int *n, double *abstol, int *iwork, int *np, double *eigvl, double *shm, double *vpot, double *work, double *wk, double *eigvc);
 
-int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype,char *jobnam, int *nfunc, char *funam,int *nvc,int *nvf,double *Evf,char *fcnam, char *fcornam);
+int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype,char *jobnam, int *nfunc, char *funam,int *nvc,int *nvf,double *Evf,double *Evc,char *fcnam, char *fcornam);
 
 void readallspl(char *file,int *iflth,double *X,double *Y,double *T,double *bcoefRe,double *bcoefIm,double *xknot,double *yknot,double *tknot, int *np, int *nf, int *kx, int *stfil, char *dim);
   
@@ -42,7 +42,7 @@ int main(){
   double norm,t,s;
   double ti,tf,pti,ptf,pstept,xi,xf,yi,yf,stept,sh[3],width,potshift,stepw,stepz;
   double *X,*Y,*T,rmse,xwork,*W,*Z,mem,Ereso,*FCGVc,**FCVcVf,*intens;
-  double m[3],x,y,pk,pki,pkf,steppk,ansk,val[5],FC,Evf[20];
+  double m[3],x,y,pk,pki,pkf,steppk,ansk,val[5],FC,Evf[20],Evc[20];
   char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10],fnam[20],fnam2[20],funam[20],jobnam[50];
   char fcnam[20],fcornam[20];
   FILE *arq=fopen("correl.inp","r");
@@ -91,7 +91,7 @@ int main(){
   printf("Reading input parameters...\n\n");
 
   //--- Read Input File
-  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&nEf,Ef,&type,&crosst,windtype,jobnam,&nfunc,funam,&nvc,&nvf,Evf,fcnam,fcornam);
+  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&nEf,Ef,&type,&crosst,windtype,jobnam,&nfunc,funam,&nvc,&nvf,Evf,Evc,fcnam,fcornam);
   fclose(arq);
   //-----
 
@@ -120,7 +120,7 @@ int main(){
      wholegrid = 0;
      }*/
   printf("> Job name: %s \n",jobnam);
-  printf("number of points in the coorelation functions: %d \n",nf);
+  printf("number of points in the correlation functions: %d \n",nf);
 
   if(type == 0){
     printf(">Grid parameters:\n");
@@ -439,6 +439,163 @@ int main(){
       printf("% E % E % E \n",val[0]*27.2114,workout[i][0],workout[i][1]);
     }
 
+//------------------------------------------------------------------------
+//------------------------------------------------------------------------
+
+  }else if(type==2){
+    //------- XAS Spectrum
+    printf("\n << Running 2D+1D model: XAS cross-section >>\n");
+
+    printf("\n << Starting Franck-Condon section >> \n\n");
+    printf("number of vc states: %d ",nvc);
+    FCGVc = malloc(nvc*sizeof(double));
+    intens = malloc(nvc*sizeof(double));
+
+    printf("reading <0|vc> FC vector from file %s \n",fcnam);
+
+    fcf = fopen(fcnam,"r"); 
+    printf("\n<0|vc>\n   ");
+    for(i=0;i<nvc;i++)  printf("      |%d> ",i);
+    printf("\n");
+    printf("< %d| ",0);
+    for(i=0;i<nvc;i++){
+      fscanf(fcf,"%lf",&FCGVc[i]); 
+      printf("% lf ", FCGVc[i]);
+    }
+
+    // reading the normalization factors from the wf generated with the fft 
+    fscanf(fcf,"%lf",&intens[0]);
+    
+    fclose(fcf);
+
+    printf("\n");
+    printf("core-excited state bending energy values:\n");
+    for(i=0;i<nvf;i++) printf(" Evc%i = %E , ",i,Evc[i]);
+    printf("\n");
+
+    printf("\n> Franck-Condon Section finished \n");
+
+    printf("\n << Starting Auto-Correlation Function section >> \n");
+
+    printf("\n the correlation function will be read from file %s \n",fcornam);
+
+    T = malloc(nf*sizeof(double));
+    fcorrelRe[i] = malloc(nf*sizeof(double));
+    fcorrelIm[i] = malloc(nf*sizeof(double));
+    
+
+    // read correlation function
+    fcorr = fopen(fcornam,"r");
+    for(ii=0;ii<nf;ii++){
+      fscanf(fcorr,"%lf",&T[ii]);
+      T[ii] = T[ii] * 41.3413745758e+0;
+      fscanf(fcorr,"%lf %lf",&fcorrelRe[ii],&fcorrelIm[ii]);
+    }
+    fclose(fcorr);
+    stept = (T[nf-1] - T[0])/(nf - 1.0);
+    
+    // total correlation function
+    tfcorrelRe = malloc(nf*sizeof(double));
+    tfcorrelIm = malloc(nf*sizeof(double));
+    for(ii=0;ii<nf;ii++){
+      tfcorrelRe[ii] = 0.0e+0;
+      tfcorrelIm[ii] = 0.0e+0;
+    }
+
+    // eq. (85) from file
+
+    for(j=0;j<nvc;j++){
+      FC = intens[0] * FCGVc[j];
+      for(ii=0;ii<nf;ii++){
+	tfcorrelRe[ii] = tfcorrelRe[ii] + FC*(fcorrelRe[k][ii]*cos(Evc[i]*T[ii]) + fcorrelIm[k][ii]*sin(Evc[i]*T[ii]) );
+	tfcorrelIm[ii] = tfcorrelIm[ii] + FC*(fcorrelIm[k][ii]*cos(Evc[i]*T[ii]) - fcorrelRe[k][ii]*sin(Evc[i]*T[ii]) );
+	//debug below
+	//tfcorrelRe[ii] = tfcorrelRe[ii] + FC*fcorrelRe[k][ii];
+	//tfcorrelIm[ii] = tfcorrelIm[ii] + FC*fcorrelIm[k][ii];
+      }
+    }
+
+     printf("Final Total Auto-Correlation Function \n");
+    printf("------------------\n");
+    for(ii=0;ii<nf;ii++){
+      printf("%lf % lf % lf \n",T[ii],tfcorrelRe[ii],tfcorrelIm[ii]);
+    }
+
+    printf("\n> Auto-Correlation Section finished \n");
+
+    printf("\n << Starting XAS Cross-Section section >> \n");
+
+    //NTG = pow(2,twopow+1);
+    NTG = pow(2,twopow);
+    steptspl=(2.0*T[nf-1])/NTG;
+    //stepE = 2*M_PI/(NTG*FSAU(steptspl));
+    stepE = 2*M_PI/(NTG*steptspl);
+    Ei = -NTG*stepE/(2.0E+0);
+    nE =  NTG;
+
+    printf("\nAuto-Correlation Function will be adjusted for Fourier Transform using splines \n");
+    printf("\nFourier parameters \n");
+    printf("npoints: 2^%d = %d\n",twopow,NTG);
+    printf("time step: %lf fs \n",steptspl);
+    printf("Energy step: %lf a.u. , final energy: %lf a.u. \n",stepE,-Ei);
+    //steptspl=(tf - ti)/(NTG);
+
+    //spline arrays
+    bcoefre = malloc(nf*sizeof(double));
+    bcoefim = malloc(nf*sizeof(double));
+    tknot = malloc((nf+kx)*sizeof(double));
+    //fft arrays
+    workin = fftw_malloc(sizeof(fftw_complex) * NTG);
+    workout = fftw_malloc(sizeof(fftw_complex) * NTG);
+
+    dbsnak_ (&nf, T, &kx, tknot);
+    dbsint_ (&nf,T,tfcorrelRe,&kx,tknot,bcoefre);
+    dbsint_ (&nf,T,tfcorrelIm,&kx,tknot,bcoefim);
+
+    //generate mirrored data
+    for(i=0;i<NTG;i++){
+      t = -T[nf-1] + i*steptspl;
+      fprintf(deb,"%lf ",t);
+      if(t < 0) s = -1.0e+0;
+      else s = 1.0e+0;
+
+      t = fabs(t);
+
+      if(strncasecmp(windtype,".SGAUSS",7)==0){
+	//TAUX = TMAX**2/(LOG(ONE/WP))**2 espec
+	//taux = pow(T[nf-1],2)/(log(1.000/width)/log(M_E));
+	taux = pow(T[nf-1],2)/pow(log(1.000/width),2);
+	window = exp(-pow(t,2)/taux);
+      }else if(strncasecmp(windtype,".EXPDEC",7)==0){
+	window = exp(-width*t);
+      }
+
+      //debug
+      //window=1.000;
+      workin[i][0] =   window*dbsval_ (&t,&kx,tknot,&nf,bcoefre);
+      workin[i][1] = s*window*dbsval_ (&t,&kx,tknot,&nf,bcoefim);
+      fprintf(deb,"%lf %lf \n",workin[i][0], workin[i][1]);
+    }
+
+    //centers t=0 at the zero frequency position of the fft input vector
+    center_fft(workin,NTG);
+    //--- do forward fft
+    // FFTW_BACKWARD -> sign in the exponent = 1.
+    p = fftw_plan_dft_1d(NTG,workin,workout,FFTW_BACKWARD,FFTW_ESTIMATE);
+    fftw_execute(p);  
+    //shifts the fft result back to the center of the array
+    center_fft(workout,NTG);
+
+    printf("\nFinal spectrum computed! \n");
+    printf("    E (eV)          Re           Im \n");
+    printf("------------------\n");
+    for(i=0;i<nE;i++){
+      val[0] = Ei + i*stepE;
+      printf("% E % E % E \n",val[0]*27.2114,workout[i][0],workout[i][1]);
+    }
+
+//------------------------------------------------------------------------
+//------------------------------------------------------------------------
   }
 
   printf("\n# End of Calculation!\n");

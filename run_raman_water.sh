@@ -969,11 +969,7 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
     echo "starting final spectrum calculation"
     echo
 
-    work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
-    all_detunings_files=`grep -i -w detun ${jobid}.log | sed "s/\<$work\>//g"`
-    #echo "debug: detuning values $all_detunings_files"
-    for detun in `echo $all_detunings_files`
-    do
+   
 	cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat #FOR XAS WE ONLY NEED GROUND->CORE FC FACTORS
 	cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat # CHECK THIS <<< 
 
@@ -1004,41 +1000,20 @@ EOF
 
 	time $fcorrel > ${jobid}-xas_csection_$detun.out
 
-	sed -n "/Final spectrum/,/End/p"  ${jobid}-xas_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' > temp
+	echo "# XAS spectrum as function of photon energy" > ${jobid}_xas.spec
+	sed -n "/> XAS spectrum as function od photon/,/End/p"  ${jobid}-xas_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | sed "/XAS/ d" >> ${jobid}_xas.spec
 
-	#${jobid}_$detun.spec
-	omres=`grep "resonance frequency:" $jobid.log | awk '{printf $3}'`
-	omres=$(awk "BEGIN {print $omres * 27.2114}")
-	Vgf_gap=`grep "ground to final gap:" $jobid.log | awk '{printf $5}'`
-	E0=`grep "Initial energy" $jobid.log | awk '{printf $3}'`
-	Vgf_gap=$(awk "BEGIN {print ($Vgf_gap - $E0tot) * 27.2114}")
-	bE0=`grep -i -w  bE0 ${jobid}.log | awk '{printf $2}'`
-	bE0=$(awk "BEGIN {print $bE0 * 27.2114}")
-	omega=$(awk "BEGIN {print $omres + $detun}")
-	echo "# spectrum, omega= $omega " > ${jobid}_$detun.spec
+	echo "# XAS spectrum as function of detuning" > ${jobid}_xas-detuning.spec
+	sed -n "/> XAS spectrum as function of detuning/,/> XAS spectrum as function od photon/p"  ${jobid}-xas_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | sed "/XAS/ d" >> ${jobid}_xas-detuning.spec
 
-	if [ "$doshift"=="y" ]; then
-	    echo "shifting spectrum, omega=$omega eV"
-	    shift=`awk "BEGIN {print $omega -$Vgf_gap + $bE0}"`
-	    while read x y discard; do
-		w=$(awk "BEGIN {print $shift - $x}")
-		Int=$(awk "BEGIN {print $y}")
-		#Int=$(awk "BEGIN {print $norm * $y}")
-		echo "$w $Int" >> ${jobid}_$detun.spec
-	    done < temp
-	    #cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec
-	    #cat temp | awk "BEGIN {printf $shift - $1}" >> ${jobid}_$detun.spec
-	else
-	    cat temp | awk '{printf $1" "$2"\n"}' > ${jobid}_$detun.spec   
-	fi
+
 	
 	#rm temp
 
 	echo
-	echo "XAS spectrum saved to ${jobid}_xas-$detun.spec"
+	echo "XAS spectrum saved to ${jobid}_xas.spec and ${jobid}_xas-detuning.spec"
 	echo
 
-    done
 
     #--- cleaning up
     if [ "$print_level" == "minimal" ]; then 

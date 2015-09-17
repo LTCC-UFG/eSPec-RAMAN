@@ -14,6 +14,9 @@
 #
 # Goiania, 27th of January of 2015
 #
+#Triolith environment:
+module load buildenv-intel/2015-1
+export LD_LIBRARY_PATH=/software/apps/intel/composer_xe_2015.1.133/compiler/lib/intel64
 
 #eSPec path
 espec=/home/vinicius/eSPec_v0.7/espec_v07.x

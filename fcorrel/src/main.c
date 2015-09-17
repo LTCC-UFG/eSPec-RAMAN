@@ -464,7 +464,7 @@ int main(){
     }
 
     // reading the normalization factors from the wf generated with the fft 
-    fscanf(fcf,"%lf",&intens[0]);
+    //fscanf(fcf,"%lf",&intens[0]);
     
     fclose(fcf);
 
@@ -508,7 +508,8 @@ int main(){
     // eq. (85) from file
 
     for(j=0;j<nvc;j++){
-      FC = intens[0] * FCGVc[j]* FCGVc[j];
+      //FC = intens[0] * FCGVc[j]* FCGVc[j];
+      FC = FCGVc[j]* FCGVc[j];
       for(ii=0;ii<nf;ii++){
 	tfcorrelRe[ii] = tfcorrelRe[ii] + FC*(fcorrelRe[0][ii]*cos(Evc[i]*T[ii]) + fcorrelIm[0][ii]*sin(Evc[i]*T[ii]) );
 	tfcorrelIm[ii] = tfcorrelIm[ii] + FC*(fcorrelIm[0][ii]*cos(Evc[i]*T[ii]) - fcorrelRe[0][ii]*sin(Evc[i]*T[ii]) );

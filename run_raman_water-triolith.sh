@@ -249,8 +249,11 @@ EOF
     
     
     echo 'saving XAS correlation function to file xas-fcorrel.dat'
-    sed -n "/Auto-correlation function/,/ Eigenvector propagated/p"  ${jobid}_init.out | sed "/Eig/ d" | sed "/==/ d" | sed "/t\/fs/ d" | sed "/Auto/ d" | sed '/^\s*$/d' | awk '{printf $1" "$4" "$5"\n"}' > xas-fcorrel.dat
-   
+    if [ "$dim" == ".1D" ]; then
+	sed -n "/Auto-correlation function/,/ Eigenvector propagated/p"  ${jobid}_init.out | sed "/Eig/ d" | sed "/==/ d" | sed "/t\/fs/ d" | sed "/Auto/ d" | sed '/^\s*$/d' | awk '{printf $1" "$4" "$5"\n"}' > xas-fcorrel.dat
+    else
+	sed -n "/Partial auto-correlation function/,/ Eigenvector propagated/p"  ${jobid}_init.out | sed "/Eig/ d" | sed "/==/ d" | sed "/t\/fs/ d" | sed "/Partial/ d" | sed '/^\s*$/d' | awk '{printf $1" "$4" "$5"\n"}' > xas-fcorrel.dat
+    fi
     #--------------------------------------------------#
 
     if [ "$print_level" == "minimal" ]; then
@@ -884,8 +887,6 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
     nvc=`grep -i -w nvc $input | awk '{printf $2}'`
     echo "number of core-excited bending modes included, nvc: $nvc"
     nvf=`grep -i -w nvf $input | awk '{printf $2}'`
-    work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
-    all_detunings_files=`grep -i -w detun ${jobid}.log | sed "s/\<$work\>//g"`
     corr_np=`cat -n xas-fcorrel.dat | tail -1 | awk '{printf $1}'`
 
     for ((i=0 ; i < $nvf ; i++)); do
@@ -974,7 +975,7 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
 
    
 	cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat #FOR XAS WE ONLY NEED GROUND->CORE FC FACTORS
-	cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat # CHECK THIS <<< 
+	#cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat # CHECK THIS <<< 
 
 	cat > correl.inp <<EOF
 # XAS cross section input

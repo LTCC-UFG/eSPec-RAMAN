@@ -154,7 +154,7 @@ echo
 ulimit -s unlimited
 
 
-if [ "$runtype" == "-all" ] || [ "$runtype" == "-init" ]; then
+if [ "$runtype" == "-all" ] || [ "$runtype" == "-init" ] || [ "$runtype" == "-xas" ]; then
 
     echo ' Starting initial propagation'
     echo
@@ -243,6 +243,12 @@ EOF
     echo 'Initial propagation done!'
     echo
     #-------------------------------------------------#
+    
+    
+    echo 'saving XAS correlation function to file xas-fcorrel.dat'
+    sed -n "/Auto-correlation function/,/ Eigenvector propagated/p"  ${jobid}_init.out | sed "/Eig/ d" | sed "/==/ d" | sed "/t\/fs/ d" | sed "/Auto/ d" | sed '/^\s*$/d' | awk '{printf $1" "$4" "$5"\n"}' > xas-fcorrel.dat
+   
+    #--------------------------------------------------#
 
     if [ "$print_level" == "minimal" ]; then
 	rm input.spc pot.inp
@@ -457,9 +463,27 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 
     fi
 
+    #------- bending |0> energy
+    bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
+    echo
+    echo "Bending ground state energy bE0 = $bE0"
+    check=`grep -i -w  bE0 ${jobid}.log | awk '{printf $1}'`
+    if [ -z "$check" ]; then
+	echo "bE0 $bE0" >> ${jobid}.log
+    fi
+
+    #--------
+
+    E0tot=$(awk "BEGIN {print  $E0 + $bE0}")
+    echo "E0tot" $E0tot >> $jobid.log
+    echo
+    echo "total initial energy E0tot = $E0tot"
+
+    #------- 
+
     check=`grep -i "resonance frequency:" ${jobid}.log | awk '{printf $1}'`
     if [ -z "$check" ]; then
-	omres=$(awk "BEGIN {print $Vd - $Vg_min - $E0}")
+	omres=$(awk "BEGIN {print $Vd - $Vg_min - $E0tot}")
 	echo "resonance frequency: $omres"
 	echo "resonance frequency: $omres" >> $jobid.log
     else
@@ -469,7 +493,9 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 
     check=`grep -i "shifted resonance frequency:" ${jobid}.log | awk '{printf $1}'`
     if [ -z "$check" ]; then
-	Eres=$(awk "BEGIN {print $omres - $Vd_min + $E0}")
+	#Eres=$(awk "BEGIN {print $omres - $Vd_min + $E0}")
+	# \epsilon)_0^{(tot)} = $E0 + $bE0
+	Eres=$(awk "BEGIN {print $Vd - $Vd_min }")
 	echo "shifted resonance frequency: $Eres"
 	echo "shifted reson. frequency: $Eres" >> $jobid.log
     else
@@ -506,22 +532,14 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 	rm intens_*.dat
     fi
     #-----------------------------
-
-    bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
-    echo
-    echo "Bending ground state energy bE0 = $bE0"
-    check=`grep -i -w  bE0 ${jobid}.log | awk '{printf $1}'`
-    if [ -z "$check" ]; then
-	echo "bE0 $bE0" >> ${jobid}.log
-    fi
   
     for (( i=0 ; i < ${nvc} ; i++ )); do
 
 	Evc[$i]=`sed -n "/from final state/,/Spectrum/p" fc_0vc.out | grep "|     $i        |" | awk '{printf $4}'`
-	shift[$i]=$(awk "BEGIN {print -${Evc[$i]} + $bE0}")
+	shift[$i]=$(awk "BEGIN {print -${Evc[$i]} }")
 	echo
 	echo "bending state vc = $i, Evc$i = ${Evc[$i]} a.u."
-	echo "associated shift, -Evc$i + bE0 = ${shift[$i]}"
+	echo "associated shift, -Evc$i = ${shift[$i]}"
 	echo
 
 	
@@ -543,7 +561,7 @@ Ereso: $Eres
 shift: ${shift[$i]}
 detuning: $all_detunings
 Fourier: 10
-Window
+Window,
 .EXPDEC $Gamma
 EOF
 
@@ -807,7 +825,7 @@ EOF
 	omres=$(awk "BEGIN {print $omres * 27.2114}")
 	Vgf_gap=`grep "ground to final gap:" $jobid.log | awk '{printf $5}'`
 	E0=`grep "Initial energy" $jobid.log | awk '{printf $3}'`
-	Vgf_gap=$(awk "BEGIN {print ($Vgf_gap - $E0) * 27.2114}")
+	Vgf_gap=$(awk "BEGIN {print ($Vgf_gap - $E0tot) * 27.2114}")
 	bE0=`grep -i -w  bE0 ${jobid}.log | awk '{printf $2}'`
 	bE0=$(awk "BEGIN {print $bE0 * 27.2114}")
 	omega=$(awk "BEGIN {print $omres + $detun}")
@@ -851,28 +869,111 @@ fi
 
 ### -------- 2D+1D XAS
 
-if [ "$runtype" == "-xas" ]; then
+if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
     echo "XAS cross section"
+    echo
+
+    Vg_min=`grep -i Vg_min $input | awk '{printf $2}'`
+    Vd_min=`grep -i Vd_min $input | awk '{printf $2}'`
+    Vf_min=`grep -i Vf_min $input | awk '{printf $2}'`
+    Vd=`grep -i Vd_vert $input | awk '{printf $2}'`
 
     nvc=`grep -i -w nvc $input | awk '{printf $2}'`
+    echo "number of core-excited bending modes included, nvc: $nvc"
     nvf=`grep -i -w nvf $input | awk '{printf $2}'`
     work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
     all_detunings_files=`grep -i -w detun ${jobid}.log | sed "s/\<$work\>//g"`
-    corr_np=`grep -i -w corr_np ${jobid}.log | awk '{printf $2}'`
+    corr_np=`cat -n xas-fcorrel.dat | tail -1 | awk '{printf $1}'`
 
     for ((i=0 ; i < $nvf ; i++)); do
 	Evc=`sed -n "/from final state/,/Spectrum/p" fc_0vc.out | grep "|     $i        |" | awk '{printf $4}'`
 	echo $Evc >> Evc.dat
     done
 
-    Evc=`cat Evf.dat | awk '{printf $1" "}'`
+    Evc=`cat Evc.dat | awk '{printf $1" "}'`
     rm Evc.dat
 
-    echo "Core-excited bending energies " $Evc
+    echo "Core-excited bending energies " $Evc "(a.u.)"
 
+#---------
+    check=`grep -i "shifted resonance frequency:" ${jobid}.log | awk '{printf $1}'`
+    if [ -z "$check" ]; then
+	#Eres=$(awk "BEGIN {print $omres - $Vd_min + $E0}")
+	# \epsilon)_0^{(tot)} = $E0 + $bE0
+	Eres=$(awk "BEGIN {print $Vd - $Vd_min }")
+	echo "shifted resonance frequency(Delta): $Eres a.u."
+	echo "shifted reson. frequency: $Eres" >> $jobid.log
+    else
+	Eres=`grep -i "shifted resonance frequency:" ${jobid}.log | awk '{printf $4}'`
+	echo "shifted resonance frequency (Delta): $Eres"
+    fi
+    #-------------------
+    Vg_min=`grep -i Vg_min $input | awk '{printf $2}'`
+    Vd=`grep -i Vd_vert $input | awk '{printf $2}'`
+
+    #----------------------
+    #    Energy of initial state
+    #---------------------
+    if [ -f "${jobid}_init.out" ]; then
+
+	E0=`grep '|     0        |' ${jobid}_init.out | awk '{printf $4}'`
+	if [ -z "$E0" ]; then
+	    E0=`grep -i -w "E0" $input | awk '{printf $2}'` 
+	fi
+
+	if [ -z "$E0" ]; then
+	    echo "could not find the value of E0"
+	    echo "if you are reading a initial wavefunction you did not provide E0"
+	    echo "please check your input"
+	    exit 666  
+	else
+	    echo "Initial stretching energy $E0 a.u."
+	fi
+    else
+
+	echo "failed to find initial propagation output file ${jobid}_init.out"
+	echo "Attempting to read E0 from input file"
+	E0=`grep -i -w "E0" $input | awk '{printf $2}'`
+	if [ -z "$E0" ]; then
+	    echo "could not find the value of E0"
+	    echo "please check your input"
+	    exit 666
+	fi
+
+    fi
+    #------- bending |0> energy
+    bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
+    echo
+    echo "Bending ground state energy bE0 = $bE0 a.u."
+    check=`grep -i -w  bE0 ${jobid}.log | awk '{printf $1}'`
+    if [ -z "$check" ]; then
+	echo "bE0 $bE0" >> ${jobid}.log
+    fi
+    #--------
+    E0tot=$(awk "BEGIN {print  $E0 + $bE0}")
+    echo "Total initial energy E0tot = $E0tot a.u."
+    #-------
+    shift=$(awk "BEGIN {print $Vd - $Vg_min -$E0tot}")
+    echo "XAS resonance frequency: $shift a.u."
+
+#-------------------
+    if [ -f xas-fcorrel.dat ]; then
+	echo "XAS correlation function found: xas-fcorrel.dat"
+    else
+	echo "XAS correlation function file (xas-fcorrel.dat) not found!!"
+	echo "have you run the initial propagation step?"
+    fi
+#-------------------
+    echo
+    echo
+    echo "starting final spectrum calculation"
+    echo
+
+    work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
+    all_detunings_files=`grep -i -w detun ${jobid}.log | sed "s/\<$work\>//g"`
+    #echo "debug: detuning values $all_detunings_files"
     for detun in `echo $all_detunings_files`
     do
-
 	cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat #FOR XAS WE ONLY NEED GROUND->CORE FC FACTORS
 	cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat # CHECK THIS <<< 
 
@@ -887,12 +988,19 @@ corr_np $corr_np
 vc $nvc
 Evc $Evc
 franckcondon fcond.dat
-fcorrel fcorrel_$detun.dat
+fcorrel xas-fcorrel.dat
+Delta $Eres
+shift $shift
 Fourier 11
 Window
 .SGAUSS $window
 
 EOF
+
+	#time $fcorrel
+	#echo
+	#echo
+	#echo '-----------------'
 
 	time $fcorrel > ${jobid}-xas_csection_$detun.out
 
@@ -903,7 +1011,7 @@ EOF
 	omres=$(awk "BEGIN {print $omres * 27.2114}")
 	Vgf_gap=`grep "ground to final gap:" $jobid.log | awk '{printf $5}'`
 	E0=`grep "Initial energy" $jobid.log | awk '{printf $3}'`
-	Vgf_gap=$(awk "BEGIN {print ($Vgf_gap - $E0) * 27.2114}")
+	Vgf_gap=$(awk "BEGIN {print ($Vgf_gap - $E0tot) * 27.2114}")
 	bE0=`grep -i -w  bE0 ${jobid}.log | awk '{printf $2}'`
 	bE0=$(awk "BEGIN {print $bE0 * 27.2114}")
 	omega=$(awk "BEGIN {print $omres + $detun}")

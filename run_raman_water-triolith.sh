@@ -163,9 +163,10 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-init" ] || [ "$runtype" == "-xa
     echo ' Starting initial propagation'
     echo
 
-    if [ -z $init_time ]; then
+    checktime=`echo "$init_time < $recom_init_time" | bc -l`
+    if [ -z "$init_time" ]; then
 	echo "recomended initial propagation time will be used!"
-    else if [ `echo "$init_time < $recom_init_time"` ]; then
+    elif [ "$checktime" -eq "1" ]; then
 	echo "WARNING: initial propagation time provided is smaller than the recomended one!"
 	echo "changing initial propagation time from $init_time to $recom_init_time!"
 	init_time=`echo $recom_init_time`

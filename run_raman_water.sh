@@ -97,7 +97,8 @@ all_detunings=`grep -i -w detuning $input | sed "s/\<$work\>//g"`
 
 #recomended propagation time based on Gamma
 decay_threshold='1e-3'
-init_time=$(awk "BEGIN {print (-log($decay_threshold)/($Gamma/27.2114))/41.3411}")
+recom_init_time=$(awk "BEGIN {print (-log($decay_threshold)/($Gamma/27.2114))/41.3411}")
+init_time=`grep -i -w init_time  $input | awk '{printf $2}'`
 
 # propagation time on final state
 fin_time=`grep -i fin_time $input | awk '{printf $2}'`
@@ -157,6 +158,19 @@ ulimit -s unlimited
 if [ "$runtype" == "-all" ] || [ "$runtype" == "-init" ] || [ "$runtype" == "-xas" ]; then
 
     echo ' Starting initial propagation'
+    echo
+
+    checktime=`echo "$init_time < $recom_init_time" | bc -l`
+    if [ -z "$init_time" ]; then
+	echo "recomended initial propagation time will be used!"
+    elif [ "$checktime" -eq "1" ]; then
+	echo "WARNING: initial propagation time provided is smaller than the recomended one!"
+	echo "changing initial propagation time from $init_time to $recom_init_time!"
+	init_time=`echo $recom_init_time`
+    else
+	echo "user provided initial propagation time will be used!"
+    fi
+
     echo
     echo "propagation time on decaying potential: $init_time fs"
 

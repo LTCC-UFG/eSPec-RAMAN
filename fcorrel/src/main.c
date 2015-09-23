@@ -44,7 +44,7 @@ int main(){
   double *X,*Y,*T,rmse,xwork,*W,*Z,mem,Ereso,*FCGVc,**FCVcVf,*intens;
   double m[3],x,y,pk,pki,pkf,steppk,ansk,val[5],FC,Evf[20],Evc[20];
   char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10],fnam[20],fnam2[20],funam[20],jobnam[50];
-  char fcnam[20],fcornam[20];
+  char fcnam[20],fcornam[20],rexfnam[20],xasfnam[20];
   FILE *arq=fopen("correl.inp","r");
   FILE *deb=fopen("debug.dat","w");
   //--- spline variables
@@ -61,7 +61,11 @@ int main(){
   fftw_plan p;
   clock_t begint,endt;
   double timediff,window,taux;
-  FILE *wpin,*fcf,*fcorr,*deb2;
+  FILE *wpin,*fcf,*fcorr,*deb2,rexsfile,xasfile;
+  //---- self absorption
+  int nxas;
+  double *xas_cross,*xas_bcoef,*xas_omega, *xas_knot,xas_cross_om,xas_cross_omp;
+  double *rexs_cross_sa,*rexs_cross,*rexs_omega;
 
 
   //--- Default values
@@ -519,8 +523,6 @@ int main(){
       }
     }
 
-    printf("\n\n >> toasty 3 \n");
-
     printf("Final Total Auto-Correlation Function \n");
     printf("------------------\n");
     for(ii=0;ii<nf;ii++){
@@ -612,6 +614,42 @@ int main(){
 
 //------------------------------------------------------------------------
 //------------------------------------------------------------------------
+  }else if(type==3){
+    printf("\n\n<< REXS cross section with Self-Absorption term calculation >>\n\n");
+    printf("original REXS cross section will be read from file %s .\n",rexfnam);
+    printf("XAS cross section will be read from file %s .\n",xasfnam);
+
+    rexsfile=fopen(rexfnam,"r");
+    xasfile=fopen(xasfnam,"r");
+   
+
+    xas_omega = malloc(nxas * sizeof(double));
+    xas_cross = malloc(nxas * sizeof(double));
+    xas_bcoef = malloc(nxas * sizeof(double));
+
+    rexs_omega = malloc(nrexs * sizeof(double));
+    rexs_cross = malloc(nrexs * sizeof(double));
+
+    rexs_cross_sa = malloc(nrexs * sizeof(double));
+
+    //reading XAS cross section from file
+    for(i=0;i<nxas;i++) fscanf(xasfile,"%lf %lf",&xas_omega[i],&xas_cross[i]);
+
+    //spline interpolation of XAS cross section
+    dbsnak_ (&nxas, xas_omega, &kx, xas_knot);
+    dbsint_ (&nxas,xas_omega,xas_cross,&kx,xas_knot,xas_bcoef);
+
+    //reading REXS cross section from file
+    for(i=0;i<nrexs;i++) fscanf(rexsfile,"%lf %lf",&rexs_omega[i],&rexs_cross[i]);
+
+    //final REXS cross section including self-absorption
+    for(i=0;i<nrexs;i++){
+      xas_cross_omp = dbsval_ (&rexs_omega[i],&kx,xas_knot,&nxas,xas_bcoef);
+      xas_cross_om  = dbsval_ (&rexs_omega[i],&kx,xas_knot,&nxas,xas_bcoef);
+      rexs_cross_sa[i] = rexs_cross[i] / ( 1.0e+0 +  xas_cross_omp/xas_cross_om  );
+      printf("% E % E \n",rexs_omega[i],rexs_cross_sa[i]);
+    }
+
   }
 
   printf("\n# End of Calculation!\n");

@@ -1044,6 +1044,15 @@ EOF
 
 fi
 
+#----------------- self-absorption part
+
+if [ "$runtype" == "-self" ]; then
+    echo "REXS cross section with Self-Absorption factor"
+    echo
+
+
+fi
+
 
 echo
 echo 'eSPec-Raman script finished'

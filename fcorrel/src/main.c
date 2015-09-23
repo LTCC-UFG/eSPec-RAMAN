@@ -29,7 +29,7 @@ Goiania, 01st of February of 2015
 #define Me    9.10938188E-31 //mass of electron in Kg
 #define FSAU(x) (x)*41.3413745758e+0 ///0.024189E+0 //fs to au units of time conversion                        mtrxdiag_ (char *dim, int *il, int *iu, int *info, int *mxdct, int *n, double *abstol, int *iwork, int *np, double *eigvl, double *shm, double *vpot, double *work, double *wk, double *eigvc);
 
-int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype,char *jobnam, int *nfunc, char *funam,int *nvc,int *nvf,double *Evf,double *Evc,char *fcnam, char *fcornam, double *Delta,double *shift);
+int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype,char *jobnam, int *nfunc, char *funam,int *nvc,int *nvf,double *Evf,double *Evc,char *fcnam, char *fcornam, double *Delta,double *shift, char *rexfnam, char *xasfnam, int *nxas, int *nrexs, double *omega);
 
 void readallspl(char *file,int *iflth,double *X,double *Y,double *T,double *bcoefRe,double *bcoefIm,double *xknot,double *yknot,double *tknot, int *np, int *nf, int *kx, int *stfil, char *dim);
   
@@ -44,7 +44,7 @@ int main(){
   double *X,*Y,*T,rmse,xwork,*W,*Z,mem,Ereso,*FCGVc,**FCVcVf,*intens;
   double m[3],x,y,pk,pki,pkf,steppk,ansk,val[5],FC,Evf[20],Evc[20];
   char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10],fnam[20],fnam2[20],funam[20],jobnam[50];
-  char fcnam[20],fcornam[20],rexfnam[20],xasfnam[20];
+  char fcnam[20],fcornam[20];
   FILE *arq=fopen("correl.inp","r");
   FILE *deb=fopen("debug.dat","w");
   //--- spline variables
@@ -61,11 +61,13 @@ int main(){
   fftw_plan p;
   clock_t begint,endt;
   double timediff,window,taux;
-  FILE *wpin,*fcf,*fcorr,*deb2,rexsfile,xasfile;
+  FILE *wpin,*fcf,*fcorr,*deb2;
   //---- self absorption
-  int nxas;
+  FILE *rexsfile,*xasfile;
+  char rexfnam[20],xasfnam[20];
+  int nxas,nrexs;
   double *xas_cross,*xas_bcoef,*xas_omega, *xas_knot,xas_cross_om,xas_cross_omp;
-  double *rexs_cross_sa,*rexs_cross,*rexs_omega;
+  double *rexs_cross_sa,*rexs_cross,*rexs_omegap,omega;
 
 
   //--- Default values
@@ -95,7 +97,7 @@ int main(){
   printf("Reading input parameters...\n\n");
 
   //--- Read Input File
-  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&nEf,Ef,&type,&crosst,windtype,jobnam,&nfunc,funam,&nvc,&nvf,Evf,Evc,fcnam,fcornam,&Delta,&shift);
+  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&nEf,Ef,&type,&crosst,windtype,jobnam,&nfunc,funam,&nvc,&nvf,Evf,Evc,fcnam,fcornam,&Delta,&shift,rexfnam,xasfnam,&nxas,&nrexs,&omega);
   fclose(arq);
   //-----
 
@@ -627,7 +629,7 @@ int main(){
     xas_cross = malloc(nxas * sizeof(double));
     xas_bcoef = malloc(nxas * sizeof(double));
 
-    rexs_omega = malloc(nrexs * sizeof(double));
+    rexs_omegap = malloc(nrexs * sizeof(double));
     rexs_cross = malloc(nrexs * sizeof(double));
 
     rexs_cross_sa = malloc(nrexs * sizeof(double));
@@ -640,14 +642,14 @@ int main(){
     dbsint_ (&nxas,xas_omega,xas_cross,&kx,xas_knot,xas_bcoef);
 
     //reading REXS cross section from file
-    for(i=0;i<nrexs;i++) fscanf(rexsfile,"%lf %lf",&rexs_omega[i],&rexs_cross[i]);
+    for(i=0;i<nrexs;i++) fscanf(rexsfile,"%lf %lf",&rexs_omegap[i],&rexs_cross[i]);
 
     //final REXS cross section including self-absorption
     for(i=0;i<nrexs;i++){
-      xas_cross_omp = dbsval_ (&rexs_omega[i],&kx,xas_knot,&nxas,xas_bcoef);
-      xas_cross_om  = dbsval_ (&rexs_omega[i],&kx,xas_knot,&nxas,xas_bcoef);
+      xas_cross_omp = dbsval_ (&rexs_omegap[i],&kx,xas_knot,&nxas,xas_bcoef);
+      xas_cross_om  = dbsval_ (&omega,&kx,xas_knot,&nxas,xas_bcoef);
       rexs_cross_sa[i] = rexs_cross[i] / ( 1.0e+0 +  xas_cross_omp/xas_cross_om  );
-      printf("% E % E \n",rexs_omega[i],rexs_cross_sa[i]);
+      printf("% E % E \n",rexs_omegap[i],rexs_cross_sa[i]);
     }
 
   }

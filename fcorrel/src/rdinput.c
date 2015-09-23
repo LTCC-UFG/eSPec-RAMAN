@@ -3,7 +3,7 @@
 #include<math.h>
 #include<string.h>
 
-int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype,char *jobnam, int *nfunc, char *funam,int *nvc,int *nvf,double *Evf,double *Evc,char *fcnam, char *fcornam,double *Delta,double *shift){
+int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype,char *jobnam, int *nfunc, char *funam,int *nvc,int *nvf,double *Evf,double *Evc,char *fcnam, char *fcornam,double *Delta,double *shift, char *rexfnam, char *xasfnam, int *nxas, int *nrexs, double *omega){
   int i,j,k,spl;
   int NXG,NYG,jcheck1,jcheck2;
   char workk[50],coment[150],typenam[20];
@@ -30,6 +30,7 @@ int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, doubl
 	  if(strncasecmp(typenam,"correl",6)==0)*type=0;
 	  else if(strncasecmp(typenam,"spectrum",8)==0)*type=1;
 	  else if(strncasecmp(typenam,"xas-spectrum",8)==0)*type=2;
+	  else if(strncasecmp(typenam,"self-abs",8)==0)*type=3;
 	  else{
 	    printf("invalid run type entered: %s",typenam);
 	    return 666;
@@ -99,7 +100,16 @@ int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, doubl
 	if(strncasecmp(workk,"Window",6)==0){
 	  fscanf(arq,"%s",windtype);
 	  fscanf(arq,"%lf",width);
-	}	
+	}
+	if(strncasecmp(workk,"rexs-cs",7)==0){
+	  fscanf(arq, "%d",nrexs);
+	  fscanf(arq, "%s",fcnam);
+	}
+	if(strncasecmp(workk,"xas-cs",6)==0){
+	  fscanf(arq, "%d",nxas);
+	  fscanf(arq, "%s",fcnam);
+	}
+	if(strncasecmp(workk,"omega",5)==0)fscanf(arq,"%lf",omega);
 	/*if(strncasecmp(workk,"Fourier",7)==0)fscanf(arq,"%d",twopow);
 	if(strncasecmp(workk,"Window",6)==0){
 	  fscanf(arq,"%s",windtype);

@@ -49,6 +49,9 @@ runtype=$1
 #
 # -xas X-ray Absorpotion Spectrum considering the 2D+1D model (this option also runs the -fc step from above)
 #
+####################################
+#
+# -self REXS cross section with self-absorption factor ( you must have manually run -all and -xas previously!!)
 #
 
 
@@ -166,6 +169,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-init" ] || [ "$runtype" == "-xa
     checktime=`echo "$init_time < $recom_init_time" | bc -l`
     if [ -z "$init_time" ]; then
 	echo "recomended initial propagation time will be used!"
+	init_time=`echo $recom_init_time`
     elif [ "$checktime" -eq "1" ]; then
 	echo "WARNING: initial propagation time provided is smaller than the recomended one!"
 	echo "changing initial propagation time from $init_time to $recom_init_time!"
@@ -859,7 +863,7 @@ EOF
 	sed -n "/> RIXS spectrum as function of the emitted photon energy /,/> RIXS spectrum as function of energy loss/p" ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/RIXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_$detun.spec
 
 
-	echo "# spectrum as function of energy loss E - E', omega= $omega " > ${jobid}_${detun}Eloss.spec
+	echo "# spectrum as function of energy loss E - E', omega= $omega " > ${jobid}_${detun}_Eloss.spec
 	sed -n "/> RIXS spectrum as function of energy loss/,/# End of Calculation/p" ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/RIXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_${detun}_Eloss.spec
 
 	# if [ "$doshift"=="y" ]; then
@@ -1030,10 +1034,10 @@ EOF
 	time $fcorrel > ${jobid}-xas_csection_$detun.out
 
 	echo "# XAS spectrum as function of photon energy" > ${jobid}_xas.spec
-	sed -n "/> XAS spectrum as function od photon/,/End/p"  ${jobid}-xas_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | sed "/XAS/ d" >> ${jobid}_xas.spec
+	sed -n "/> XAS spectrum as function od photon/,/End/p"  ${jobid}-xas_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | sed "/XAS/ d" | awk '{printf $1" "$2"\n"}' >> ${jobid}_xas.spec
 
 	echo "# XAS spectrum as function of detuning" > ${jobid}_xas-detuning.spec
-	sed -n "/> XAS spectrum as function of detuning/,/> XAS spectrum as function od photon/p"  ${jobid}-xas_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | sed "/XAS/ d" >> ${jobid}_xas-detuning.spec
+	sed -n "/> XAS spectrum as function of detuning/,/> XAS spectrum as function od photon/p"  ${jobid}-xas_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | sed "/XAS/ d" | awk '{printf $1" "$2"\n"}' >> ${jobid}_xas-detuning.spec
 
 
 	
@@ -1077,23 +1081,41 @@ if [ "$runtype" == "-self" ]; then
 #-----------#
 #
 # I need a loop on all detuning files!!!!
-    if [ -f ${jobid}_$detun.spec ]; then
-	echo "REXS spectrum file for detuning = $detun found: ${jobid}_$detun.spec"
-	echo
-    else
-	echo "ERROR!!"	
-	echo "REXS spectrum file for detuning = $detun not found!!"
-	echo "Have you run a -all calculation previously?"
-	exit
-    fi
+    all_detunings_files=`ls ${jobid}_*.spec | cat | cut  -f2 -d"_" | sed "s/.spec//" | awk '{printf $1" "}'`
 
-    
-    cat > correl.inp <<EOF
+    for detun in  `echo $all_detunings_files`
+    do
+
+	#------- variables for spectrum shift
+	omres=`grep "resonance frequency:" $jobid.log | awk '{printf $3}'`
+
+	Vgf_gap=`grep "ground to final gap:" $jobid.log | awk '{printf $5}'`
+	E0=`grep "Initial energy" $jobid.log | awk '{printf $3}'`
+	bE0=`grep -i -w  bE0 ${jobid}.log | awk '{printf $2}'`
+	E0tot=$(awk "BEGIN {print  $E0 + $bE0}")
+
+	detunau=$(awk "BEGIN {print $detun / 27.2114}")
+
+	omega=$(awk "BEGIN {print $omres + $detunau}")
+	shift=$(awk "BEGIN {print $Vgf_gap + $E0tot }")
+	#------------------------------------
+
+	if [ -f ${jobid}_$detun.spec ]; then
+	    echo "REXS spectrum file for detuning = $detun found: ${jobid}_$detun.spec"
+	    echo
+	else
+	    echo "ERROR!!"	
+	    echo "REXS spectrum file for detuning = $detun not found!!"
+	    echo "Have you run a -all calculation previously?"
+	    exit
+	fi
+
+	
+	cat > correl.inp <<EOF
 # XAS cross section input
 
 *Main
 runtype: self-abs
-corr_np $corr_np
 
 *crosssection
 rexs-cs $nrexs ${jobid}_$detun.spec
@@ -1102,9 +1124,13 @@ omega $omega
 
 EOF
 
-    time $fcorrel > ${jobid}-rexs-sa_csection_$detun.out
+	time $fcorrel > ${jobid}-rexs-sa_csection_$detun.out
 
-#--------------------
+
+	#---------
+    done
+
+    #--------------------
 fi
 
 

@@ -126,7 +126,7 @@ int main(){
      wholegrid = 0;
      }*/
   printf("> Job name: %s \n",jobnam);
-  printf("number of points in the correlation functions: %d \n",nf);
+  if(type != 3) printf("number of points in the correlation functions: %d \n",nf);
 
   if(type == 0){
     printf(">Grid parameters:\n");
@@ -631,28 +631,36 @@ int main(){
 //------------------------------------------------------------------------
   }else if(type==3){
     printf("\n\n<< REXS cross section with Self-Absorption term calculation >>\n\n");
-    printf("original REXS cross section will be read from file %s .\n",rexfnam);
-    printf("XAS cross section will be read from file %s .\n",xasfnam);
+    printf("original REXS cross section will be read from file %s, npoints = %d. \n",rexfnam,nrexs);
+    printf("XAS cross section will be read from file %s, npoints = %d. \n",xasfnam,nxas);
 
     rexsfile=fopen(rexfnam,"r");
     xasfile=fopen(xasfnam,"r");
-   
+
+    printf("toasty >> 1 \n");
 
     xas_omega = malloc(nxas * sizeof(double));
     xas_cross = malloc(nxas * sizeof(double));
     xas_bcoef = malloc(nxas * sizeof(double));
+    xas_knot  = malloc((nxas + kx) * sizeof(double));
 
     rexs_omegap = malloc(nrexs * sizeof(double));
     rexs_cross = malloc(nrexs * sizeof(double));
 
     rexs_cross_sa = malloc(nrexs * sizeof(double));
 
+    printf("toasty >> 2 \n");
+
     //reading XAS cross section from file
     for(i=0;i<nxas;i++) fscanf(xasfile,"%lf %lf",&xas_omega[i],&xas_cross[i]);
+
+    printf("toasty >> 3 \n");
 
     //spline interpolation of XAS cross section
     dbsnak_ (&nxas, xas_omega, &kx, xas_knot);
     dbsint_ (&nxas,xas_omega,xas_cross,&kx,xas_knot,xas_bcoef);
+
+    printf("toasty >> 4 \n");
 
     //reading REXS cross section from file
     for(i=0;i<nrexs;i++) fscanf(rexsfile,"%lf %lf",&rexs_omegap[i],&rexs_cross[i]);

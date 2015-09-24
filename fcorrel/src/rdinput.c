@@ -103,11 +103,11 @@ int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, doubl
 	}
 	if(strncasecmp(workk,"rexs-cs",7)==0){
 	  fscanf(arq, "%d",nrexs);
-	  fscanf(arq, "%s",fcnam);
+	  fscanf(arq, "%s",rexfnam);
 	}
 	if(strncasecmp(workk,"xas-cs",6)==0){
 	  fscanf(arq, "%d",nxas);
-	  fscanf(arq, "%s",fcnam);
+	  fscanf(arq, "%s",xasfnam);
 	}
 	if(strncasecmp(workk,"omega",5)==0)fscanf(arq,"%lf",omega);
 	/*if(strncasecmp(workk,"Fourier",7)==0)fscanf(arq,"%d",twopow);

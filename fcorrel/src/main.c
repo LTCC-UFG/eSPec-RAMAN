@@ -437,13 +437,26 @@ int main(){
     //shifts the fft result back to the center of the array
     center_fft(workout,NTG);
 
-    printf("\nFinal spectrum computed! \n");
-    printf("    E (eV)          Re           Im \n");
+    printf("\nFinal spectrum computed! \n incoming photon frequency: %lf a.u. \n\n",omega);
+    
+
+    printf("\n > RIXS spectrum as function of the emitted photon energy \n\n");
+    printf("    E' (eV)          Re           Im \n");
     printf("------------------\n");
     for(i=0;i<nE;i++){
       val[0] = Ei + i*stepE;
+      val[0] = omega - val[0] + shift;
       printf("% E % E % E \n",val[0]*27.2114,workout[i][0],workout[i][1]);
     }
+
+    printf("\n\n > RIXS spectrum as function of energy loss \n\n");
+    printf("    E - E' (eV)          Re           Im \n");
+    printf("------------------\n");
+    for(i=0;i<nE;i++){
+      val[0] = Ei + i*stepE;
+      val[0] = val[0] - shift;
+      printf("% E % E % E \n",val[0]*27.2114,workout[i][0],workout[i][1]);
+    } 
 
 //------------------------------------------------------------------------
 //------------------------------------------------------------------------

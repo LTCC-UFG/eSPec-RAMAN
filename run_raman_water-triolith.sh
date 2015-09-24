@@ -820,7 +820,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
 	bE0=`grep -i -w  bE0 ${jobid}.log | awk '{printf $2}'`
 	E0tot=$(awk "BEGIN {print  $E0 + $bE0}")
 
-	detunau=$(awk "BEGIN {print $detunau / 27.2114}")
+	detunau=$(awk "BEGIN {print $detun / 27.2114}")
 
 	omega=$(awk "BEGIN {print $omres + $detunau}")
 	shift=$(awk "BEGIN {print $Vgf_gap + $E0tot }")

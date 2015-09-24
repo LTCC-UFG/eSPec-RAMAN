@@ -853,9 +853,14 @@ EOF
 
 	time $fcorrel > ${jobid}-final_csection_$detun.out
 
-	sed -n "/Final spectrum/,/End/p"  ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' > temp
+	#sed -n "/Final spectrum/,/End/p"  ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' > temp
 
-	echo "# spectrum, omega= $omega " > ${jobid}_$detun.spec
+	echo "# spectrum as function of emitted photon energy E', omega= $omega " > ${jobid}_$detun.spec
+	sed -n "/> RIXS spectrum as function of the emitted photon energy /,/> RIXS spectrum as function of energy loss/p" ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/RIXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_$detun.spec
+
+
+	echo "# spectrum as function of energy loss E - E', omega= $omega " > ${jobid}_${detun}Eloss.spec
+	sed -n "/> RIXS spectrum as function of energy loss/,/# End of Calculation/p" ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/RIXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_${detun}_Eloss.spec
 
 	# if [ "$doshift"=="y" ]; then
 	#     echo "shifting spectrum, omega=$omega eV"

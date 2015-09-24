@@ -1044,13 +1044,55 @@ EOF
 
 fi
 
+#
 #----------------- self-absorption part
+#
 
 if [ "$runtype" == "-self" ]; then
     echo "REXS cross section with Self-Absorption factor"
     echo
 
+    if [ -f ${jobid}_xas.spec ]; then
+	echo "XAS spectrum file found: ${jobid}_xas.spec"
+	echo
+    else
+	echo "ERROR!!"	
+	echo "XAS spectrum file not found!!"
+	echo "Have you run a -xas calculation previously?"
+	exit
+    fi
+#
+#-----------#
+#
+# I need a loop on all detuning files!!!!
+    if [ -f ${jobid}_$detun.spec ]; then
+	echo "REXS spectrum file for detuning = $detun found: ${jobid}_$detun.spec"
+	echo
+    else
+	echo "ERROR!!"	
+	echo "REXS spectrum file for detuning = $detun not found!!"
+	echo "Have you run a -all calculation previously?"
+	exit
+    fi
 
+    
+    cat > correl.inp <<EOF
+# XAS cross section input
+
+*Main
+runtype: self-abs
+corr_np $corr_np
+
+*crosssection
+rexs-cs $nrexs ${jobid}_$detun.spec
+xas-cs  $nxas  ${jobid}_xas.spec
+omega $omega
+
+EOF
+
+    time $fcorrel > ${jobid}-rexs-sa_csection_$detun.out
+
+#--------------------
 fi
 
 

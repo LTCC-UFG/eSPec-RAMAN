@@ -1524,7 +1524,7 @@ c
 
       implicit double precision (a-h,o-z), integer (i-n)
 
-      parameter(nxmax=500,kxmax=8,nymax=200,kymax=8,nzmax=4097,kzmax=8)
+      parameter(nxmax=500,kxmax=8,nymax=500,kymax=8,nzmax=4097,kzmax=8)
 
 c
 c     dimensions should be

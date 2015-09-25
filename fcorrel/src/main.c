@@ -632,12 +632,13 @@ int main(){
   }else if(type==3){
     printf("\n\n<< REXS cross section with Self-Absorption term calculation >>\n\n");
     printf("original REXS cross section will be read from file %s, npoints = %d. \n",rexfnam,nrexs);
-    printf("XAS cross section will be read from file %s, npoints = %d. \n",xasfnam,nxas);
+    printf("XAS cross section will be read from file %s, npoints = %d. \n\n",xasfnam,nxas);
+
+    omega = omega * 27.2114;
+    printf("\n incident photon energy: %lf a.u., %lf eV \n\n",omega/27.2114,omega);
 
     rexsfile=fopen(rexfnam,"r");
     xasfile=fopen(xasfnam,"r");
-
-    printf("toasty >> 1 \n");
 
     xas_omega = malloc(nxas * sizeof(double));
     xas_cross = malloc(nxas * sizeof(double));
@@ -649,23 +650,23 @@ int main(){
 
     rexs_cross_sa = malloc(nrexs * sizeof(double));
 
-    printf("toasty >> 2 \n");
-
     //reading XAS cross section from file
     for(i=0;i<nxas;i++) fscanf(xasfile,"%lf %lf",&xas_omega[i],&xas_cross[i]);
-
-    printf("toasty >> 3 \n");
+    fclose(xasfile);
 
     //spline interpolation of XAS cross section
     dbsnak_ (&nxas, xas_omega, &kx, xas_knot);
     dbsint_ (&nxas,xas_omega,xas_cross,&kx,xas_knot,xas_bcoef);
 
-    printf("toasty >> 4 \n");
-
     //reading REXS cross section from file
     for(i=0;i<nrexs;i++) fscanf(rexsfile,"%lf %lf",&rexs_omegap[i],&rexs_cross[i]);
+    fclose(rexsfile);
+
 
     //final REXS cross section including self-absorption
+    printf("\n > REXS-SA spectrum as function of emitted photon energy \n\n");
+    printf("    E' (eV)       Re           \n");
+    printf("------------------\n");
     for(i=0;i<nrexs;i++){
       xas_cross_omp = dbsval_ (&rexs_omegap[i],&kx,xas_knot,&nxas,xas_bcoef);
       xas_cross_om  = dbsval_ (&omega,&kx,xas_knot,&nxas,xas_bcoef);
@@ -673,9 +674,19 @@ int main(){
       printf("% E % E \n",rexs_omegap[i],rexs_cross_sa[i]);
     }
 
+    printf("\n\n > REXS-SA spectrum as function of energy loss \n\n");
+    printf("    E - E' (eV)       Re           \n");
+    printf("------------------\n");
+    for(i=0;i<nrexs;i++){
+      printf("% E % E \n",omega - rexs_omegap[i],rexs_cross_sa[i]);
+    } 
+
+    free(xas_omega);free(xas_cross);free(xas_bcoef);free(xas_knot);
+    free(rexs_cross);free(rexs_cross_sa);free(rexs_omegap);
+
   }
 
-  printf("\n# End of Calculation!\n");
+  printf("\n\n# End of Calculation!\n");
   printf("# Correlation terminated successfully!\n");
   return 0;
 }

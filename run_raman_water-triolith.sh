@@ -884,7 +884,7 @@ EOF
 	#rm temp
 
 	echo
-	echo "Final spectrum saved to ${jobid}_$detun.spec"
+	echo "Final spectrum saved to ${jobid}_$detun.spec and ${jobid}_${detun}_Eloss.spec"
 	echo
 
     done
@@ -1071,6 +1071,8 @@ if [ "$runtype" == "-self" ]; then
     if [ -f ${jobid}_xas.spec ]; then
 	echo "XAS spectrum file found: ${jobid}_xas.spec"
 	echo
+	cat ${jobid}_xas.spec | sed "/#/ d" > temp_xas.spec
+	nxas=`cat -n temp_xas.spec | tail -1 | awk '{printf $1}'`
     else
 	echo "ERROR!!"	
 	echo "XAS spectrum file not found!!"
@@ -1085,7 +1087,6 @@ if [ "$runtype" == "-self" ]; then
 
     for detun in  `echo $all_detunings_files`
     do
-
 	#------- variables for spectrum shift
 	omres=`grep "resonance frequency:" $jobid.log | awk '{printf $3}'`
 
@@ -1103,6 +1104,8 @@ if [ "$runtype" == "-self" ]; then
 	if [ -f ${jobid}_$detun.spec ]; then
 	    echo "REXS spectrum file for detuning = $detun found: ${jobid}_$detun.spec"
 	    echo
+	    cat ${jobid}_$detun.spec | sed "/#/ d" > temp_rexs.spec
+	    nxas=`cat -n temp_rexs.spec | tail -1 | awk '{printf $1}'`
 	else
 	    echo "ERROR!!"	
 	    echo "REXS spectrum file for detuning = $detun not found!!"
@@ -1118,18 +1121,21 @@ if [ "$runtype" == "-self" ]; then
 runtype: self-abs
 
 *crosssection
-rexs-cs $nrexs ${jobid}_$detun.spec
-xas-cs  $nxas  ${jobid}_xas.spec
+rexs-cs $nrexs temp_rexs.spec 
+xas-cs  $nxas  temp_xas.spec
 omega $omega
 
 EOF
 
 	time $fcorrel > ${jobid}-rexs-sa_csection_$detun.out
+	echo "# spectrum as function of emitted photon energy E', omega= $omega " > ${jobid}_$detun-sa.spec
+	sed -n "/> REXS-SA spectrum as function of emitted photon energy/,/> REXS-SA spectrum as function of energy loss/p" ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/REXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_$detun-sa.spec
 
 
+	echo "# spectrum as function of energy loss E - E', omega= $omega " > ${jobid}_${detun}_Eloss-sa.spec
+	sed -n "/> REXS-SA spectrum as function of energy loss/,/# End of Calculation/p" ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/REXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_${detun}_Eloss-sa.spec
 	#---------
     done
-
     #--------------------
 fi
 

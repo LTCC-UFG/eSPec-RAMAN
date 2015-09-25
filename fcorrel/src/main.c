@@ -668,7 +668,7 @@ int main(){
     printf("    E' (eV)       Re           \n");
     printf("------------------\n");
     for(i=0;i<nrexs;i++){
-      if(rexs_omegap[i] > xas_omega[0] && rexs_omegap[i] < xas_omega[nxas]){
+      if(rexs_omegap[i] > xas_omega[0] && rexs_omegap[i] < xas_omega[nxas-1]){
 	xas_cross_omp = dbsval_ (&rexs_omegap[i],&kx,xas_knot,&nxas,xas_bcoef);
 	xas_cross_om  = dbsval_ (&omega,&kx,xas_knot,&nxas,xas_bcoef);
 	rexs_cross_sa[i] = rexs_cross[i] / ( 1.0e+0 +  xas_cross_omp/xas_cross_om  );
@@ -681,7 +681,7 @@ int main(){
     printf("------------------\n");
     for(i=0;i<nrexs;i++){
       //printf("%lf > %lf , %lf > %lf \n",rexs_omegap[i], xas_omega[0], rexs_omegap[i], xas_omega[nxas-1]);
-      if(rexs_omegap[i] > xas_omega[0] && rexs_omegap[i] < xas_omega[nxas]){
+      if(rexs_omegap[i] > xas_omega[0] && rexs_omegap[i] < xas_omega[nxas-1]){
 	printf("% E % E \n",omega - rexs_omegap[i],rexs_cross_sa[i]);
       }
     } 

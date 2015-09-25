@@ -668,17 +668,21 @@ int main(){
     printf("    E' (eV)       Re           \n");
     printf("------------------\n");
     for(i=0;i<nrexs;i++){
-      xas_cross_omp = dbsval_ (&rexs_omegap[i],&kx,xas_knot,&nxas,xas_bcoef);
-      xas_cross_om  = dbsval_ (&omega,&kx,xas_knot,&nxas,xas_bcoef);
-      rexs_cross_sa[i] = rexs_cross[i] / ( 1.0e+0 +  xas_cross_omp/xas_cross_om  );
-      printf("% E % E \n",rexs_omegap[i],rexs_cross_sa[i]);
+      if(rexs_omegap[i] > xas_omega[0] && rexs_omegap[i] < xas_omega[nxas]){
+	xas_cross_omp = dbsval_ (&rexs_omegap[i],&kx,xas_knot,&nxas,xas_bcoef);
+	xas_cross_om  = dbsval_ (&omega,&kx,xas_knot,&nxas,xas_bcoef);
+	rexs_cross_sa[i] = rexs_cross[i] / ( 1.0e+0 +  xas_cross_omp/xas_cross_om  );
+	printf("% E % E \n",rexs_omegap[i],rexs_cross_sa[i]);
+      }
     }
 
     printf("\n\n > REXS-SA spectrum as function of energy loss \n\n");
     printf("    E - E' (eV)       Re           \n");
     printf("------------------\n");
     for(i=0;i<nrexs;i++){
-      printf("% E % E \n",omega - rexs_omegap[i],rexs_cross_sa[i]);
+      if(rexs_omegap[i] > xas_omega[0] && rexs_omegap[i] < xas_omega[nxas]){
+	printf("% E % E \n",omega - rexs_omegap[i],rexs_cross_sa[i]);
+      }
     } 
 
     free(xas_omega);free(xas_cross);free(xas_bcoef);free(xas_knot);

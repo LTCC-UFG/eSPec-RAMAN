@@ -680,7 +680,7 @@ int main(){
     printf("    E - E' (eV)       Re           \n");
     printf("------------------\n");
     for(i=0;i<nrexs;i++){
-      printf("%lf > %lf , %lf > %lf \n",rexs_omegap[i], xas_omega[0], rexs_omegap[i], xas_omega[nxas]);
+      //printf("%lf > %lf , %lf > %lf \n",rexs_omegap[i], xas_omega[0], rexs_omegap[i], xas_omega[nxas-1]);
       if(rexs_omegap[i] > xas_omega[0] && rexs_omegap[i] < xas_omega[nxas]){
 	printf("% E % E \n",omega - rexs_omegap[i],rexs_cross_sa[i]);
       }

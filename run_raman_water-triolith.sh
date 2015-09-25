@@ -1087,6 +1087,7 @@ if [ "$runtype" == "-self" ]; then
 # I need a loop on all detuning files!!!!
 #    try to use the Eloss files
 #    all_detunings_files=`ls ${jobid}_*.spec | cat | cut  -f2 -d"_" | sed "s/.spec//" | awk '{printf $1" "}'`
+    work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
     all_detunings_files=`grep -i -w detun ${jobid}.log | sed "s/\<$work\>//g"`
 
     for detun in  `echo $all_detunings_files`

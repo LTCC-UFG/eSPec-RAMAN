@@ -47,7 +47,9 @@ runtype=$1
 #
 ############################3
 #
-# -xas X-ray Absorpotion Spectrum considering the 2D+1D model (this option also runs the -fc step from above)
+# -xas X-ray Absorpotion Spectrum considering the 2D+1D model (this option also runs the -init and -fc steps from above)
+#
+# -xascs computes only the final part to get the XAS spectrum (you must have run -all, or -init and -fc previously)
 #
 ####################################
 #
@@ -1102,11 +1104,13 @@ if [ "$runtype" == "-self" ]; then
 	#------------------------------------
 
 	if [ -f ${jobid}_$detun.spec ]; then
+	    echo
 	    echo "REXS spectrum file for detuning = $detun found: ${jobid}_$detun.spec"
 	    echo
 	    cat ${jobid}_$detun.spec | sed "/#/ d" > temp_rexs.spec
 	    nxas=`cat -n temp_rexs.spec | tail -1 | awk '{printf $1}'`
 	else
+	    echo
 	    echo "ERROR!!"	
 	    echo "REXS spectrum file for detuning = $detun not found!!"
 	    echo "Have you run a -all calculation previously?"
@@ -1129,11 +1133,11 @@ EOF
 
 	time $fcorrel > ${jobid}-rexs-sa_csection_$detun.out
 	echo "# spectrum as function of emitted photon energy E', omega= $omega " > ${jobid}_$detun-sa.spec
-	sed -n "/> REXS-SA spectrum as function of emitted photon energy/,/> REXS-SA spectrum as function of energy loss/p" ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/REXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_$detun-sa.spec
+	sed -n "/> REXS-SA spectrum as function of emitted photon energy/,/> REXS-SA spectrum as function of energy loss/p" ${jobid}-rexs-sa_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/REXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_$detun-sa.spec
 
 
 	echo "# spectrum as function of energy loss E - E', omega= $omega " > ${jobid}_${detun}_Eloss-sa.spec
-	sed -n "/> REXS-SA spectrum as function of energy loss/,/# End of Calculation/p" ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/REXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_${detun}_Eloss-sa.spec
+	sed -n "/> REXS-SA spectrum as function of energy loss/,/# End of Calculation/p" ${jobid}-rexs-sa_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/REXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_${detun}_Eloss-sa.spec
 	#---------
     done
     #--------------------

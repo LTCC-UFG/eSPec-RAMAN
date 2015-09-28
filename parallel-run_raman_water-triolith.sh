@@ -242,7 +242,7 @@ $cross/
 *NPROJECTIONS
  6  1
 *FOURIER
- 15/
+ 14/
 $abs
 $abs1
 $abstren
@@ -732,7 +732,7 @@ $cross/
 *NPROJECTIONS
  6  1
 *FOURIER
- 15/
+ 14/
 $abs
 $abs1
 $abstren
@@ -803,7 +803,8 @@ EOF
 	    sed -n "/All desired/,/End/p" ${jobid}-correl_vc${i}_$detun.out | sed "/#/ d" | sed "/---/ d" | sed "/All/ d" > fcorrel_vc${i}_$detun.dat
         cp fcorrel_vc${i}_$detun.dat ../
 	    cat fcorrel_vc${i}_$detun.dat >> ../fcorrel_$detun.dat
-	    corr_np=`cat -n  fcorrel_vc${i}_$detun.dat | tail -2 | awk '{printf $1" "}' | tail -2 | awk '{printf $1}'`
+        corr_np=`cat fcorrel_vc${i}_$detun.dat | sed '/^\s*$/d' | cat -n | tail -2 | awk '{printf $1" "}' | tail -2 | awk '{printf $1}'`
+        #corr_np=`cat -n  fcorrel_vc${i}_$detun.dat | tail -2 | awk '{printf $1" "}' | tail -2 | awk '{printf $1}'`
         cd ../
 	done
 
@@ -1057,6 +1058,8 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
    
 	cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat #FOR XAS WE ONLY NEED GROUND->CORE FC FACTORS
 	#cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat # CHECK THIS <<< 
+	
+	window=$(awk "BEGIN {print $Gamma / 27.2114}")
 
 	cat > correl.inp <<EOF
 # XAS cross section input
@@ -1074,7 +1077,7 @@ Delta $Eres
 shift $shift
 Fourier 11
 Window
-.SGAUSS $window
+.EXPDEC $window
 
 EOF
 

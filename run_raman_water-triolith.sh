@@ -242,7 +242,7 @@ $cross/
 *NPROJECTIONS
  6  1
 *FOURIER
- 15/
+ 14/
 $abs
 $abs1
 $abstren
@@ -586,7 +586,7 @@ Ereso: $Eres
 shift: ${shift[$i]}
 detuning: $all_detunings
 Fourier: 10
-Window,
+Window
 .EXPDEC $Gamma
 EOF
 
@@ -713,7 +713,7 @@ $cross/
 *NPROJECTIONS
  6  1
 *FOURIER
- 15/
+ 14/
 $abs
 $abs1
 $abstren
@@ -1008,6 +1008,8 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
 	cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat #FOR XAS WE ONLY NEED GROUND->CORE FC FACTORS
 	#cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat # CHECK THIS <<< 
 
+	window=$(awk "BEGIN {print $Gamma / 27.2114}")
+
 	cat > correl.inp <<EOF
 # XAS cross section input
 
@@ -1024,7 +1026,7 @@ Delta $Eres
 shift $shift
 Fourier 11
 Window
-.SGAUSS $window
+.EXPDEC $window
 
 EOF
 

@@ -354,7 +354,7 @@ int main(){
 	  FC = FCGVc[l]*FCVcVf[l][i]*FCVcVf[j][i]*FCGVc[j];
 	  // we multiply by the intensity, due to previous normalization of wf in the energy domain
 	  fprintf(deb2,"vf = %d, vc = %d vc' = %d (%d), FC = %E \n",i,j,l,k,FC);
-	  //FC = FC * intens[j]*intens[l];
+	  FC = FC * intens[j]*intens[l];
 	  for(ii=0;ii<nf;ii++){
 	    tfcorrelRe[ii] = tfcorrelRe[ii] + FC*(fcorrelRe[k][ii]*cos(Evf[i]*T[ii]) + fcorrelIm[k][ii]*sin(Evf[i]*T[ii]) );
 	    tfcorrelIm[ii] = tfcorrelIm[ii] + FC*(fcorrelIm[k][ii]*cos(Evf[i]*T[ii]) - fcorrelRe[k][ii]*sin(Evf[i]*T[ii]) );
@@ -675,6 +675,7 @@ int main(){
 	//to avoid numerical instabilities due to small negative values that may occur in FT
 	xas_cross_omp = fabs(xas_cross_omp);
 	xas_cross_om = fabs(xas_cross_om);
+	rexs_cross[i] = fabs(rexs_cross[i]);
 
 	rexs_cross_sa[i] = rexs_cross[i] / ( 1.0e+0 +  xas_cross_omp/xas_cross_om  );
 	printf("% E % E \n",rexs_omegap[i],rexs_cross_sa[i]);

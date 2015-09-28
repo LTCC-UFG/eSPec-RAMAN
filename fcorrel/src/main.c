@@ -671,6 +671,11 @@ int main(){
       if(rexs_omegap[i] > xas_omega[0] && rexs_omegap[i] < xas_omega[nxas-1]){
 	xas_cross_omp = dbsval_ (&rexs_omegap[i],&kx,xas_knot,&nxas,xas_bcoef);
 	xas_cross_om  = dbsval_ (&omega,&kx,xas_knot,&nxas,xas_bcoef);
+
+	//to avoid numerical instabilities due to small negative values that may occur in FT
+	xas_cross_omp = fabs(xas_cross_omp);
+	xas_cross_om = fabs(xas_cross_om);
+
 	rexs_cross_sa[i] = rexs_cross[i] / ( 1.0e+0 +  xas_cross_omp/xas_cross_om  );
 	printf("% E % E \n",rexs_omegap[i],rexs_cross_sa[i]);
       }

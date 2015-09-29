@@ -803,7 +803,7 @@ EOF
 	sed -n "/All desired/,/End/p" ${jobid}-correl_vc${i}_$detun.out | sed "/#/ d" | sed "/---/ d" | sed "/All/ d" > fcorrel_vc${i}_$detun.dat
         cp fcorrel_vc${i}_$detun.dat ../
 	cat fcorrel_vc${i}_$detun.dat >> ../fcorrel_$detun.dat
-        corr_np=`cat fcorrel_vc${i}_$detun.dat | sed '/^\s*$/d' | cat -n | tail -2 | awk '{printf $1" "}' | tail -1 | awk '{printf $1}'`
+        corr_np=`cat fcorrel_vc${i}_$detun.dat | sed '/^\s*$/d' | cat -n | tail -1 | awk '{printf $1}'`
         #corr_np=`cat -n  fcorrel_vc${i}_$detun.dat | tail -2 | awk '{printf $1" "}' | tail -2 | awk '{printf $1}'`
         cd ../
     done

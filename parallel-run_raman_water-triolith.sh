@@ -1202,4 +1202,6 @@ fi
 
 echo
 echo 'eSPec-Raman script finished'
-
+echo
+date
+echo

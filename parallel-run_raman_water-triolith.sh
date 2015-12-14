@@ -565,9 +565,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 	echo
 	echo "bending state vc = $i, Evc$i = ${Evc[$i]} a.u."
 	echo "associated shift, -Evc$i = ${shift[$i]}"
-	echo
-
-	
+	echo	
 
 	cat > raman.inp <<EOF
 # eSPec-Raman input

@@ -113,17 +113,18 @@ fin_time=`grep -i fin_time $input | awk '{printf $2}'`
 
 # absorbing conditions
 absorb_cond=`grep -i -w absorb_cond $input | awk '{printf $1}'`
-if [ -z "$absorb_cond" ]; then
+#bug this was inverted
+if [ -z "$absorb_cond" ]; then 
+    abs=" "
+    abs1=" "
+    abstren=" "
+    absrang=" "
+else
     abs="*ABSORBING"
     abs1=".SMOOTHW"
     abstren=`grep -i -w absorb_cond $input | awk '{printf $2}'`"/"
     work=`grep -i -w absorb_range $input | awk '{printf $1}'`
     absrang=`grep -i -w absorb_range $input | sed "s/\<$work\>//g"`"/"
-else
-    abs=" "
-    abs1=" "
-    abstren=" "
-    absrang=" "
 fi
 
 # fft supergaussian window of the final spectrum

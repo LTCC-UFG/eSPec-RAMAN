@@ -122,7 +122,8 @@ if [ -z "$absorb_cond" ]; then
 else
     abs="*ABSORBING"
     abs1=".SMOOTHW"
-    abstren=`grep -i -w absorb_cond $input | awk '{printf $2}'`"/"
+    work=`grep -i -w absorb_cond $input | awk '{printf $1}'`
+    abstren=`grep -i -w absorb_cond $input | sed "s/\<$work\>//g"`"/"
     work=`grep -i -w absorb_range $input | awk '{printf $1}'`
     absrang=`grep -i -w absorb_range $input | sed "s/\<$work\>//g"`"/"
 fi

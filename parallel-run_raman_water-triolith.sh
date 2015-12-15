@@ -237,7 +237,7 @@ $cross/
 *TPDIAG
 .MTRXDIAG 
 *NIST
- 5  0/
+ 12  0/
 *ABSTOL
  1D-6/
 

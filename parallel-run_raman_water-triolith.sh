@@ -85,7 +85,7 @@ if [ "$initial_wf" == ".CALC" ] || [ -z "$initial_wf" ]; then
     mode='.CALC'
 
     chkst=`grep -i -w init_state $input | awk '{printf $1}'`
-    if [ -z "$chkst" ] then
+    if [ -z "$chkst" ]; then
 	instate='0'
     else
 	instate=`grep -i -w init_state $input | awk '{printf $2}'`

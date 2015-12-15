@@ -91,7 +91,7 @@ if [ "$initial_wf" == ".CALC" ] || [ -z "$initial_wf" ]; then
     else
 	instate=`grep -i -w init_state $input | awk '{printf $2}'`
 	if [ $instate > 10 ]; then
-	    nist=$(echo 11 + $instate | bc)
+	    nist=$(echo 2 + $instate | bc)
 	    echo "number of vibrational eigenstates to be calculated changed to $nist"
 	fi
     fi

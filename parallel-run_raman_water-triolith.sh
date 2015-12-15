@@ -83,9 +83,18 @@ initial_wf=`grep -i -w initial_wf $input | awk '{printf $2}'`
 if [ "$initial_wf" == ".CALC" ] || [ -z "$initial_wf" ]; then
     initial_pot=`grep -i initial_pot $input | awk '{printf $2}'`
     mode='.CALC'
+
+    chkst=`grep -i -w init_state $input | awk '{printf $1}'`
+    if [ -z "$chkst" ] then
+	instate=`grep -i -w init_state $input | awk '{printf $2}'`
+    else
+	instate='0'
+    fi
+
 else
     initial_pot=`grep -i -w initial_wf $input | awk '{printf $2}'`
     mode='.GETC'
+    instate='0'
 fi
 #
 # potential files---------
@@ -184,6 +193,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-init" ] || [ "$runtype" == "-xa
 
     echo "propagation time on decaying potential: $init_time fs"
 
+    echo "vibrational state to be propagated : $instate"
 
     cat $initial_pot > pot.inp
     cat $decaying_pot >> pot.inp
@@ -236,7 +246,7 @@ $cross/
 .PPSOD
  0.0  $init_time  $step/
 *PRPGSTATE
- 0/
+ $instate/
 *TPTRANS
 .ONE
 *PRPTOL

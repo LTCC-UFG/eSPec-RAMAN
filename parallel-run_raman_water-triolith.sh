@@ -98,7 +98,7 @@ if [ "$initial_wf" == ".CALC" ] || [ -z "$initial_wf" ]; then
 
 else
     initial_pot=`grep -i -w initial_wf $input | awk '{printf $2}'`
-    mode='.GETC'
+    mode='.GETR'
     instate='0'
 fi
 #

@@ -624,10 +624,12 @@ EOF
     wait
 
     for (( i=0 ; i < ${nvc} ; i++ )); do
+	
+	rdir=${jobid}-cond-vc${i}
 
-    rdir=${jobid}-cond-vc${i}
-
-	all_detunings_files=`ls $rdir/wp_* | cat | cut  -f2 -d"_" | sed "s/.dat//" | awk '{printf $1" "}'`
+        # this had a problem with ${jobid} with _ in the name
+	#all_detunings_files=`ls $rdir/wp_* | cat | cut  -f2 -d"_" | sed "s/.dat//" | awk '{printf $1" "}'`
+	all_detunings_files=`grep -i -w detuning: $rdir/${jobid}_raman_Evc$i.out | sed 's/detuning://'`
 	if [ "$i" -eq "0" ]; then
 	    #------------------->>
 	    check=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`

@@ -47,3 +47,7 @@ test-water/
 test/
 viktor-problem/
 bending-mode-effect/
+test-xas/
+
+
+parallel-run_raman_water-triolith.sh

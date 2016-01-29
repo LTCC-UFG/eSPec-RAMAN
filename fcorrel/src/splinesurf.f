@@ -172,7 +172,7 @@ c
 
       implicit double precision (a-h,o-z), integer (i-n)
 
-      parameter(kxmax=8,nxmax=4000)
+      parameter(kxmax=8,nxmax=20000)
 
       dimension xdata(nx),xvec(nx),xknot(nx+kx),bcoef(nx)
       dimension work((2*kxmax-1)*nxmax)

@@ -300,6 +300,8 @@ EOF
 	rm wf_data/eigvc_* movie.gplt veff_0001.dat
     elif [ "$print_level" == "intermediate" ]; then
 	rm input.spc pot.inp movie.gplt veff_0001.dat
+    elif [ "$print_level" == "savedisk" ]; then
+	rm wf_data/eigvc_*
     fi
 
 fi
@@ -667,6 +669,12 @@ EOF
     elif [ "$print_level" == "intermediate" ]; then
 	rm raman.inp wp2_*
 	rm fft_check_in.dat fft_check_out.dat
+    elif [ "$print_level" == "savedisk" ]; then
+	rm -r wf_data
+	for (( i=0 ; i < ${nvc} ; i++ )); do
+	    rdir=${jobid}-cond-vc${i}
+	    rm $rdir/fft_spline.bcoef
+	done
     fi
 
     #-------------------------------------------------#
@@ -846,6 +854,13 @@ EOF
 	rm ${jobid}-correl_vc*_*.out
     elif [ "$print_level" == "intermediate" ]; then
 	rm correl.inp input.spc inwf_*.dat wp-vc*_*.inp inwf.dat
+    elif [ "$print_level" == "savedisk" ]; then
+	for detun in `echo $all_detunings_files`; do
+	    for ((i=0 ; i < $nvc ; i++));  do
+		rdir=fin_vc${i}_$detun
+		rm $rdir/ReIm_*
+	    done
+	done
     fi
 
 

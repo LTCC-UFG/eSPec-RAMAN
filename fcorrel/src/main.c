@@ -526,12 +526,16 @@ int main(){
 
     // eq. (85) from file
 
+    //debug serious problem with franck condon
+    deb2=fopen("debug2.dat","w");
+
     for(j=0;j<nvc;j++){
       //FC = intens[0] * FCGVc[j]* FCGVc[j];
       FC = FCGVc[j]* FCGVc[j];
+      fprintf(deb2,"vc = %d, FC= %lf, E%d = %lf \n",j,FC,j,Evc[j]);
       for(ii=0;ii<nf;ii++){
-	tfcorrelRe[ii] = tfcorrelRe[ii] + FC*(fcorrelRe[0][ii]*cos(Evc[i]*T[ii]) + fcorrelIm[0][ii]*sin(Evc[i]*T[ii]) );
-	tfcorrelIm[ii] = tfcorrelIm[ii] + FC*(fcorrelIm[0][ii]*cos(Evc[i]*T[ii]) - fcorrelRe[0][ii]*sin(Evc[i]*T[ii]) );
+	tfcorrelRe[ii] = tfcorrelRe[ii] + FC*(fcorrelRe[0][ii]*cos(Evc[j]*T[ii]) + fcorrelIm[0][ii]*sin(Evc[j]*T[ii]) );
+	tfcorrelIm[ii] = tfcorrelIm[ii] + FC*(fcorrelIm[0][ii]*cos(Evc[j]*T[ii]) - fcorrelRe[0][ii]*sin(Evc[j]*T[ii]) );
 	//debug below
 	//tfcorrelRe[ii] = tfcorrelRe[ii] + FC*fcorrelRe[k][ii];
 	//tfcorrelIm[ii] = tfcorrelIm[ii] + FC*fcorrelIm[k][ii];

@@ -1181,7 +1181,7 @@ if [ "$runtype" == "-self" ]; then
 	    echo "REXS spectrum file for detuning = $detun found: ${jobid}_$detun.spec"
 	    echo
 	    cat ${jobid}_$detun.spec | sed "/#/ d" > temp_rexs.spec
-	    nxas=`cat -n temp_rexs.spec | tail -1 | awk '{printf $1}'`
+	    nrexs=`cat -n temp_rexs.spec | tail -1 | awk '{printf $1}'`
 	else
 	    echo
 	    echo "ERROR!!"	

@@ -14,13 +14,16 @@
 #
 # Goiania, 27th of January of 2015
 #
+#Triolith environment:
+module load buildenv-intel/2015-1
+export LD_LIBRARY_PATH=/software/apps/intel/composer_xe_2015.1.133/compiler/lib/intel64
 
 #eSPec path
-espec=/home/vinicius/eSPec_v0.7/espec_v07.x
+espec=/proj/xramp2015/progs/eSPec_v0.7/espec_v07.x
 #raman-eSPec path
-raman=/home/vinicius/programming/LTCC/eSPec-RAMAN/raman
+raman=/proj/xramp2015/progs/especman/eSPec-RAMAN/raman
 #fcorrel path
-fcorrel=/home/vinicius/programming/LTCC/eSPec-RAMAN/fcorrel/correl
+fcorrel=/proj/xramp2015/progs/especman/eSPec-RAMAN/fcorrel/correl
 
 #----------- Script modes ---------------#
 runtype=$1
@@ -44,8 +47,13 @@ runtype=$1
 #
 ############################3
 #
-# -xas X-ray Absorpotion Spectrum considering the 2D+1D model (this option also runs the -fc step from above)
+# -xas X-ray Absorpotion Spectrum considering the 2D+1D model (this option also runs the -init and -fc steps from above)
 #
+# -xascs computes only the final part to get the XAS spectrum (you must have run -all, or -init and -fc previously)
+#
+####################################
+#
+# -self REXS cross section with self-absorption factor ( you must have manually run -all and -xas previously!!)
 #
 
 
@@ -75,9 +83,23 @@ initial_wf=`grep -i -w initial_wf $input | awk '{printf $2}'`
 if [ "$initial_wf" == ".CALC" ] || [ -z "$initial_wf" ]; then
     initial_pot=`grep -i initial_pot $input | awk '{printf $2}'`
     mode='.CALC'
+
+    chkst=`grep -i -w init_state $input | awk '{printf $1}'`
+    if [ -z "$chkst" ]; then
+	instate='0'
+	nist='10'
+    else
+	instate=`grep -i -w init_state $input | awk '{printf $2}'`
+	if [ $instate > 10 ]; then
+	    nist=$(echo 2 + $instate | bc)
+	    echo "number of vibrational eigenstates to be calculated changed to $nist"
+	fi
+    fi
+
 else
     initial_pot=`grep -i -w initial_wf $input | awk '{printf $2}'`
     mode='.GETC'
+    instate='0'
 fi
 #
 # potential files---------
@@ -105,17 +127,19 @@ fin_time=`grep -i fin_time $input | awk '{printf $2}'`
 
 # absorbing conditions
 absorb_cond=`grep -i -w absorb_cond $input | awk '{printf $1}'`
-if [ -z "$absorb_cond" ]; then
-    abs="*ABSORBING"
-    abs1=".SMOOTHW"
-    abstren=`grep -i -w absorb_cond $input | awk '{printf $2}'`"/"
-    work=`grep -i -w absorb_range $input | awk '{printf $1}'`
-    absrang=`grep -i -w absorb_range $input | sed "s/\<$work\>//g"`"/"
-else
+#bug this was inverted
+if [ -z "$absorb_cond" ]; then 
     abs=" "
     abs1=" "
     abstren=" "
     absrang=" "
+else
+    abs="*ABSORBING"
+    abs1=".SMOOTHW"
+    work=`grep -i -w absorb_cond $input | awk '{printf $1}'`
+    abstren=`grep -i -w absorb_cond $input | sed "s/\<$work\>//g"`"/"
+    work=`grep -i -w absorb_range $input | awk '{printf $1}'`
+    absrang=`grep -i -w absorb_range $input | sed "s/\<$work\>//g"`"/"
 fi
 
 # fft supergaussian window of the final spectrum
@@ -163,6 +187,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-init" ] || [ "$runtype" == "-xa
     checktime=`echo "$init_time < $recom_init_time" | bc -l`
     if [ -z "$init_time" ]; then
 	echo "recomended initial propagation time will be used!"
+	init_time=`echo $recom_init_time`
     elif [ "$checktime" -eq "1" ]; then
 	echo "WARNING: initial propagation time provided is smaller than the recomended one!"
 	echo "changing initial propagation time from $init_time to $recom_init_time!"
@@ -171,9 +196,9 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-init" ] || [ "$runtype" == "-xa
 	echo "user provided initial propagation time will be used!"
     fi
 
-    echo
     echo "propagation time on decaying potential: $init_time fs"
 
+    echo "vibrational state to be propagated : $instate"
 
     cat $initial_pot > pot.inp
     cat $decaying_pot >> pot.inp
@@ -217,7 +242,7 @@ $cross/
 *TPDIAG
 .MTRXDIAG 
 *NIST
- 5  0/
+ 12  0/
 *ABSTOL
  1D-6/
 
@@ -226,7 +251,7 @@ $cross/
 .PPSOD
  0.0  $init_time  $step/
 *PRPGSTATE
- 0/
+ $instate/
 *TPTRANS
 .ONE
 *PRPTOL
@@ -234,7 +259,7 @@ $cross/
 *NPROJECTIONS
  6  1
 *FOURIER
- 15/
+ 14/
 $abs
 $abs1
 $abstren
@@ -260,8 +285,11 @@ EOF
     
     
     echo 'saving XAS correlation function to file xas-fcorrel.dat'
-    sed -n "/Auto-correlation function/,/ Eigenvector propagated/p"  ${jobid}_init.out | sed "/Eig/ d" | sed "/==/ d" | sed "/t\/fs/ d" | sed "/Auto/ d" | sed '/^\s*$/d' | awk '{printf $1" "$4" "$5"\n"}' > xas-fcorrel.dat
-   
+    if [ "$dim" == ".1D" ]; then
+	sed -n "/Auto-correlation function/,/ Eigenvector propagated/p"  ${jobid}_init.out | sed "/Eig/ d" | sed "/==/ d" | sed "/t\/fs/ d" | sed "/Auto/ d" | sed '/^\s*$/d' | awk '{printf $1" "$4" "$5"\n"}' > xas-fcorrel.dat
+    else
+	sed -n "/Partial auto-correlation function/,/ Eigenvector propagated/p"  ${jobid}_init.out | sed "/Eig/ d" | sed "/==/ d" | sed "/t\/fs/ d" | sed "/Partial/ d" | sed '/^\s*$/d' | awk '{printf $1" "$4" "$5"\n"}' > xas-fcorrel.dat
+    fi
     #--------------------------------------------------#
 
     if [ "$print_level" == "minimal" ]; then
@@ -276,159 +304,6 @@ EOF
 
 fi
 
-
-if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ]; then
-
-    #---------------Franck-Condon--------------#
-
-    # potential files
-    bendinit_pot=`grep -i -w bend_init_pot $input | awk '{printf $2}'`
-    benddecay_pot=`grep -i -w bend_decay_pot $input | awk '{printf $2}'`
-    bendfin_pot=`grep -i -w bend_fin_pot $input | awk '{printf $2}'`
-
-    bend_np=`grep -i -w bend_npoints $input | awk '{printf $2}'`
-    bend_mass=`grep -i -w bend_mass $input | awk '{printf $2}'`
-
-    echo 'Computing Franck-Condon Factors'
-    echo
-
-    # bending states variables
-    nvc=`grep -i -w nvc $input | awk '{printf $2}'`
-    echo "number of vc states $nvc"
-    nvf=`grep -i -w nvf $input | awk '{printf $2}'`
-    echo "number of vf states $nvf"
-    echo
-
-    echo 'computing <0|vc>'
-    cat $bendinit_pot > bpot.inp
-    cat $benddecay_pot >> bpot.inp
-
-    cat > fc_0vc.inp <<EOF
-*** eSPec input file ***
-========================
-**MAIN
-*TITLE
- +++++ cs2 Raman fin +++++
-*DIMENSION
-.1D
- $bend_np/
-*POTENTIAL
-.FILE
-bpot.inp
-*MASS
-$bend_mass/
-*TPCALC
-.SPECTRUM
-.TI
-*INIEIGVC
-.CALC
-*CHANGE
-.YES
-*PRTCRL
-.PARTIAL
-*PRTPOT
-.NO
-*PRTEIGVC
-.NO
-*PRTVEFF
-.NO
-*PRTEIGVC2
-.NO
-
-**TI
-*TPDIAG
-.MTRXDIAG 
-*NIST
- 1  0/
-*NFST
- $nvc  0/
-*ABSTOL
- 1D-6/
-
-**END
-
-EOF
-
-    cp fc_0vc.inp input.spc
-    time $espec > fc_0vc.out
-
-    sed -n "/Spectrum/,/The/p" fc_0vc.out | sed "/Spec/ d" | sed "/==/ d" | sed "/*/ d" | sed "/The/ d" | awk '{printf $2"\t"$4" "$5" "$6"\n"}' > fc_0vc.dat
-
-    echo 'done!'
-    echo
-
-    echo 'computing <vc|vf>'
-
-    cat $benddecay_pot > bpot.inp
-    cat $bendfin_pot >> bpot.inp
-
-    cat > fc_vcvf.inp <<EOF
-*** eSPec input file ***
-========================
-**MAIN
-*TITLE
- +++++ cs2 Raman fin +++++
-*DIMENSION
-.1D
- $bend_np/
-*POTENTIAL
-.FILE
-bpot.inp
-*MASS
-$bend_mass/
-*TPCALC
-.SPECTRUM
-.TI
-*INIEIGVC
-.CALC
-*CHANGE
-.YES
-*PRTCRL
-.PARTIAL
-*PRTPOT
-.NO
-*PRTEIGVC
-.NO
-*PRTVEFF
-.NO
-*PRTEIGVC2
-.NO
-
-**TI
-*TPDIAG
-.MTRXDIAG 
-*NIST
- $nvc  0/
-*NFST
- $nvf  0/
-*ABSTOL
- 1D-6/
-
-**END
-
-EOF
-
-    cp fc_vcvf.inp input.spc
-    time $espec > fc_vcvf.out
-
-    sed -n "/Spectrum/,/The/p" fc_vcvf.out | sed "/Spec/ d" | sed "/==/ d" | sed "/*/ d" | sed "/The/ d" | awk '{printf $2"\t"$4" "$5" "$6"\n"}' > fc_vcvf.dat
-
-    echo 'done!'
-    echo
-    echo 'Finished Franck-Condon section'
-    echo
-
-    if [ "$print_level" == "minimal" ]; then 
-	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp 
-    elif [ "$print_level" == "essential" ]; then
-	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp 
-    elif [ "$print_level" == "intermediate" ]; then
-	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp
-    fi
-
-
-fi
-
 if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cfin" ] ; then
     #---------------|Phi(0)> calculation--------------#
     echo 'Generating initial conditions for second propagation'
@@ -437,11 +312,6 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     if [ -f  "${jobid}.log" ]; then
 	echo "# starting log file" > ${jobid}.log
     fi
-
-    # bending states variables
-    nvc=`grep -i -w nvc $input | awk '{printf $2}'`
-    nvf=`grep -i -w nvf $input | awk '{printf $2}'`
-
 
     Vg_min=`grep -i Vg_min $input | awk '{printf $2}'`
     Vd_min=`grep -i Vd_min $input | awk '{printf $2}'`
@@ -477,18 +347,9 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 
     fi
 
-    #------- bending |0> energy
-    bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
-    echo
-    echo "Bending ground state energy bE0 = $bE0"
-    check=`grep -i -w  bE0 ${jobid}.log | awk '{printf $1}'`
-    if [ -z "$check" ]; then
-	echo "bE0 $bE0" >> ${jobid}.log
-    fi
-
     #--------
 
-    E0tot=$(awk "BEGIN {print  $E0 + $bE0}")
+    E0tot=$(awk "BEGIN {print  $E0}")
     echo "E0tot" $E0tot >> $jobid.log
     echo
     echo "total initial energy E0tot = $E0tot"
@@ -545,20 +406,9 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     then
 	rm intens_*.dat
     fi
-    #-----------------------------
-  
-    for (( i=0 ; i < ${nvc} ; i++ )); do
+    
 
-	Evc[$i]=`sed -n "/from final state/,/Spectrum/p" fc_0vc.out | grep "|     $i        |" | awk '{printf $4}'`
-	shift[$i]=$(awk "BEGIN {print -${Evc[$i]} }")
-	echo
-	echo "bending state vc = $i, Evc$i = ${Evc[$i]} a.u."
-	echo "associated shift, -Evc$i = ${shift[$i]}"
-	echo
-
-	
-
-	cat > raman.inp <<EOF
+    cat > raman.inp <<EOF
 # eSPec-Raman input
 
 *Main
@@ -566,44 +416,44 @@ dimension
 $dim
 $npoints
 mass: $mass
-filename: wf_data/ReIm_
+filename: ../wf_data/ReIm_
 nfiles: 1 $nfiles
 timeinterval: 0.000 $rtime
 
 *Propagation
 Ereso: $Eres
-shift: ${shift[$i]}
+shift: 0.0e+0
 detuning: $all_detunings
 Fourier: 10
-Window,
+Window
 .EXPDEC $Gamma
 EOF
 
-	time $raman > ${jobid}_raman_Evc$i.out
+    echo "Running parallel |Phi(0)> calculation for Bending $i"
 
-	all_detunings_files=`ls wp_* | cat | cut  -f2 -d"_" | sed "s/.dat//" | awk '{printf $1" "}'`
-	if [ "$i" -eq "0" ]; then
-	    #------------------->>
-	    check=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
-	    if [ -z "$check" ]; then
-		echo "detun" $all_detunings_files >> ${jobid}.log
-	    fi
-	    #------------------->>
+    time $raman > ${jobid}_raman.out &
+
+    all_detunings_files=`ls wp_* | cat | cut  -f2 -d"_" | sed "s/.dat//" | awk '{printf $1" "}'`
+    if [ "$i" -eq "0" ]; then
+	#------------------->>
+	check=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
+	if [ -z "$check" ]; then
+	    echo "detun" $all_detunings_files >> ${jobid}.log
 	fi
+	#------------------->>
+    fi
 
-	#echo "$all_detunings_files"
-	# rename files according to respective bending state -----
-	for detun in `echo $all_detunings_files`
-	do
-	    file=wp_${detun}.dat
-	    mv $file wp-vc${i}_${detun}.dat
-	    cat wp-vc${i}_${detun}.dat >> inwf_${detun}.dat
-	    echo " " >> inwf_${detun}.dat
-	    echo "vc${i}" `head -1 wp-vc${i}_${detun}.dat | awk '{printf $8}'` >> intens_${detun}.dat
-	done
-	# ---------------------------------------------
+    #echo "$all_detunings_files"
+    # rename files according to respective bending state -----
+    for detun in `echo $all_detunings_files`
+    do
+	file=wp_${detun}.dat
+	mv $file wp_${detun}.dat
+	cat wp_${detun}.dat >> inwf_${detun}.dat
+	echo " " >> inwf_${detun}.dat
+    done # End of detuning loop
 
-    done
+    done # End of bending modes loop
 
     echo
     echo 'initial conditions generated!'
@@ -634,8 +484,6 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fin" ] || [ "$runtype" == "-cfi
 	rm fcorrel.dat
     fi
 
-    nvc=`grep -i -w nvc $input | awk '{printf $2}'`
-    nvf=`grep -i -w nvf $input | awk '{printf $2}'`
     work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
     all_detunings_files=`grep -i -w detun ${jobid}.log | sed "s/\<$work\>//g"`
 
@@ -645,12 +493,8 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fin" ] || [ "$runtype" == "-cfi
 	    rm fcorrel_$detun.dat
 	fi
 
-	for ((i=0 ; i < $nvc ; i++));  do  
-
-	    echo "running vc $i and detuning = $detun"
-
-	    file=wp-vc${i}_${detun}.dat
-	    fileinp=wp-vc${i}_${detun}.inp
+	    file=wp_${detun}.dat
+	    fileinp=wp_${detun}.inp
 	    cp $file $fileinp
 	    cat $final_pot >> $fileinp
 
@@ -702,7 +546,7 @@ $cross/
 *NPROJECTIONS
  6  1
 *FOURIER
- 15/
+ 14/
 $abs
 $abs1
 $abstren
@@ -711,19 +555,38 @@ $absrang
 **END
 EOF
 
-	    time $espec > ${jobid}_vc${i}_$detun.out
+#----------------- To run in parallel -------------------
+        
+    # Copying files to separate directory
+        rdir=fin_vc${i}_$detun
+        mkdir $rdir
+        cp $fileinp $rdir
+        cp input.spc $rdir
+        cd $rdir
 
-	    echo "propagation for vc $i and detuning = $detun done!"
-	    echo
+    # Running
+        echo "Running vc $i in background"
+	    time $espec > ${jobid}_vc${i}_$detun.out &
+        cd ../
+    done
+    wait
+    echo "All finished!"
 
-	    echo "computing correlation functions"
-	    echo
+    echo
+    echo "computing correlation functions"
+    echo
+
+    for ((i=0 ; i < $nvc ; i++));  do   
+
+        cd fin_vc${i}_$detun 
+
+        sed "/#/ d" ../inwf_${detun}.dat > inwf.dat
 
 	    nfiles=`ls ReIm_*.dat | awk '{printf $1"\n"}' | tail -1 | cut -c 6-9`
 	    last_file=`ls ReIm_*.dat | awk '{printf $1"\n"}' | tail -1`
 	    rtime=`head -1 $last_file | awk '{printf $3}'`
 
-	    sed "/#/ d" inwf_${detun}.dat > inwf.dat
+
 
 	    cat > correl.inp <<EOF
 # correl input
@@ -742,11 +605,24 @@ timeinterval: 0.000 $rtime
 wfunctions $nvc inwf.dat
 
 EOF
-	    time $fcorrel > ${jobid}-correl_vc${i}_$detun.out
-	    sed -n "/All desired/,/End/p" ${jobid}-correl_vc${i}_$detun.out | sed "/#/ d" | sed "/---/ d" | sed "/All/ d" > fcorrel_vc${i}_$detun.dat
-	    cat fcorrel_vc${i}_$detun.dat >> fcorrel_$detun.dat
-	    corr_np=`cat -n  fcorrel_vc${i}_$detun.dat | tail -2 | awk '{printf $1" "}' | tail -2 | awk '{printf $1}'`
-	done
+
+        echo "Running fcorrel in Background for vc $i"
+	    time $fcorrel > ${jobid}-correl_vc${i}_$detun.out &
+        cd ../
+    done
+    wait
+
+    for ((i=0 ; i < $nvc ; i++));  do
+        cd fin_vc${i}_$detun
+	sed -n "/All desired/,/End/p" ${jobid}-correl_vc${i}_$detun.out | sed "/#/ d" | sed "/---/ d" | sed "/All/ d" > fcorrel_vc${i}_$detun.dat
+        cp fcorrel_vc${i}_$detun.dat ../
+	cat fcorrel_vc${i}_$detun.dat >> ../fcorrel_$detun.dat
+        corr_np=`cat fcorrel_vc${i}_$detun.dat | sed '/^\s*$/d' | cat -n | tail -1 | awk '{printf $1}'`
+        #corr_np=`cat -n  fcorrel_vc${i}_$detun.dat | tail -2 | awk '{printf $1" "}' | tail -2 | awk '{printf $1}'`
+        cd ../
+    done
+
+# End of Detuning loop
     done
 
     check=`grep -i -w "corr_np" ${jobid}.log | awk '{printf $1}'`
@@ -754,7 +630,7 @@ EOF
 	echo "corr_np $corr_np" >> ${jobid}.log
     fi
 
-    rm ReIm_*
+    #rm ReIm_*
 
     echo "All correlation functions computed!"
 
@@ -807,6 +683,20 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
     for detun in `echo $all_detunings_files`
     do
 
+	#------- variables for spectrum shift
+	omres=`grep "resonance frequency:" $jobid.log | awk '{printf $3}'`
+
+	Vgf_gap=`grep "ground to final gap:" $jobid.log | awk '{printf $5}'`
+	E0=`grep "Initial energy" $jobid.log | awk '{printf $3}'`
+	bE0=`grep -i -w  bE0 ${jobid}.log | awk '{printf $2}'`
+	E0tot=$(awk "BEGIN {print  $E0 + $bE0}")
+
+	detunau=$(awk "BEGIN {print $detun / 27.2114}")
+
+	omega=$(awk "BEGIN {print $omres + $detunau}")
+	shift=$(awk "BEGIN {print $Vgf_gap + $E0tot }")
+	#------------------------------------
+
 	cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat
 	cat  fc_vcvf.dat | awk '{printf $1" \n"}' >> fcond.dat
 	cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat
@@ -825,6 +715,8 @@ Evf $Evf
 franckcondon fcond.dat
 fcorrel fcorrel_$detun.dat
 Fourier 11
+omega $omega
+shift $shift
 Window
 .SGAUSS $window
 
@@ -832,38 +724,34 @@ EOF
 
 	time $fcorrel > ${jobid}-final_csection_$detun.out
 
-	sed -n "/Final spectrum/,/End/p"  ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' > temp
+	#sed -n "/Final spectrum/,/End/p"  ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' > temp
 
-	#${jobid}_$detun.spec
-	omres=`grep "resonance frequency:" $jobid.log | awk '{printf $3}'`
-	omres=$(awk "BEGIN {print $omres * 27.2114}")
-	Vgf_gap=`grep "ground to final gap:" $jobid.log | awk '{printf $5}'`
-	E0=`grep "Initial energy" $jobid.log | awk '{printf $3}'`
-	Vgf_gap=$(awk "BEGIN {print ($Vgf_gap - $E0tot) * 27.2114}")
-	bE0=`grep -i -w  bE0 ${jobid}.log | awk '{printf $2}'`
-	bE0=$(awk "BEGIN {print $bE0 * 27.2114}")
-	omega=$(awk "BEGIN {print $omres + $detun}")
-	echo "# spectrum, omega= $omega " > ${jobid}_$detun.spec
+	echo "# spectrum as function of emitted photon energy E', omega= $omega " > ${jobid}_$detun.spec
+	sed -n "/> RIXS spectrum as function of the emitted photon energy /,/> RIXS spectrum as function of energy loss/p" ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/RIXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_$detun.spec
 
-	if [ "$doshift"=="y" ]; then
-	    echo "shifting spectrum, omega=$omega eV"
-	    shift=`awk "BEGIN {print $omega -$Vgf_gap + $bE0}"`
-	    while read x y discard; do
-		w=$(awk "BEGIN {print $shift - $x}")
-		Int=$(awk "BEGIN {print $y}")
-		#Int=$(awk "BEGIN {print $norm * $y}")
-		echo "$w $Int" >> ${jobid}_$detun.spec
-	    done < temp
-	    #cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec
-	    #cat temp | awk "BEGIN {printf $shift - $1}" >> ${jobid}_$detun.spec
-	else
-	    cat temp | awk '{printf $1" "$2"\n"}' > ${jobid}_$detun.spec   
-	fi
+
+	echo "# spectrum as function of energy loss E - E', omega= $omega " > ${jobid}_${detun}_Eloss.spec
+	sed -n "/> RIXS spectrum as function of energy loss/,/# End of Calculation/p" ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/RIXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_${detun}_Eloss.spec
+
+	# if [ "$doshift"=="y" ]; then
+	#     echo "shifting spectrum, omega=$omega eV"
+	#     shift=`awk "BEGIN {print $omega -$Vgf_gap + $bE0}"`
+	#     while read x y discard; do
+	# 	w=$(awk "BEGIN {print $shift - $x}")
+	# 	Int=$(awk "BEGIN {print $y}")
+	# 	#Int=$(awk "BEGIN {print $norm * $y}")
+	# 	echo "$w $Int" >> ${jobid}_$detun.spec
+	#     done < temp
+	#     #cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec
+	#     #cat temp | awk "BEGIN {printf $shift - $1}" >> ${jobid}_$detun.spec
+	# else
+	#     cat temp | awk '{printf $1" "$2"\n"}' > ${jobid}_$detun.spec   
+	# fi
 	
 	#rm temp
 
 	echo
-	echo "Final spectrum saved to ${jobid}_$detun.spec"
+	echo "Final spectrum saved to ${jobid}_$detun.spec and ${jobid}_${detun}_Eloss.spec"
 	echo
 
     done
@@ -895,8 +783,6 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
     nvc=`grep -i -w nvc $input | awk '{printf $2}'`
     echo "number of core-excited bending modes included, nvc: $nvc"
     nvf=`grep -i -w nvf $input | awk '{printf $2}'`
-    work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
-    all_detunings_files=`grep -i -w detun ${jobid}.log | sed "s/\<$work\>//g"`
     corr_np=`cat -n xas-fcorrel.dat | tail -1 | awk '{printf $1}'`
 
     for ((i=0 ; i < $nvf ; i++)); do
@@ -985,7 +871,9 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
 
    
 	cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat #FOR XAS WE ONLY NEED GROUND->CORE FC FACTORS
-	cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat # CHECK THIS <<< 
+	#cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat # CHECK THIS <<< 
+	
+	window=$(awk "BEGIN {print $Gamma / 27.2114}")
 
 	cat > correl.inp <<EOF
 # XAS cross section input
@@ -1003,7 +891,7 @@ Delta $Eres
 shift $shift
 Fourier 11
 Window
-.SGAUSS $window
+.EXPDEC $window
 
 EOF
 
@@ -1015,10 +903,10 @@ EOF
 	time $fcorrel > ${jobid}-xas_csection_$detun.out
 
 	echo "# XAS spectrum as function of photon energy" > ${jobid}_xas.spec
-	sed -n "/> XAS spectrum as function od photon/,/End/p"  ${jobid}-xas_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | sed "/XAS/ d" >> ${jobid}_xas.spec
+	sed -n "/> XAS spectrum as function od photon/,/End/p"  ${jobid}-xas_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | sed "/XAS/ d" | awk '{printf $1" "$2"\n"}' >> ${jobid}_xas.spec
 
 	echo "# XAS spectrum as function of detuning" > ${jobid}_xas-detuning.spec
-	sed -n "/> XAS spectrum as function of detuning/,/> XAS spectrum as function od photon/p"  ${jobid}-xas_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | sed "/XAS/ d" >> ${jobid}_xas-detuning.spec
+	sed -n "/> XAS spectrum as function of detuning/,/> XAS spectrum as function od photon/p"  ${jobid}-xas_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/Final/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | sed "/XAS/ d" | awk '{printf $1" "$2"\n"}' >> ${jobid}_xas-detuning.spec
 
 
 	
@@ -1041,7 +929,93 @@ EOF
 
 fi
 
+#
+#----------------- self-absorption part
+#
+
+if [ "$runtype" == "-self" ]; then
+    echo "REXS cross section with Self-Absorption factor"
+    echo
+
+    if [ -f ${jobid}_xas.spec ]; then
+	echo "XAS spectrum file found: ${jobid}_xas.spec"
+	echo
+	cat ${jobid}_xas.spec | sed "/#/ d" > temp_xas.spec
+	nxas=`cat -n temp_xas.spec | tail -1 | awk '{printf $1}'`
+    else
+	echo "ERROR!!"	
+	echo "XAS spectrum file not found!!"
+	echo "Have you run a -xas calculation previously?"
+	exit
+    fi
+#
+#-----------#
+#
+# I need a loop on all detuning files!!!!
+#    try to use the Eloss files
+#    all_detunings_files=`ls ${jobid}_*.spec | cat | cut  -f2 -d"_" | sed "s/.spec//" | awk '{printf $1" "}'`
+    work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
+    all_detunings_files=`grep -i -w detun ${jobid}.log | sed "s/\<$work\>//g"`
+
+    for detun in  `echo $all_detunings_files`
+    do
+	#------- variables for spectrum shift
+	omres=`grep "resonance frequency:" $jobid.log | awk '{printf $3}'`
+
+	Vgf_gap=`grep "ground to final gap:" $jobid.log | awk '{printf $5}'`
+	E0=`grep "Initial energy" $jobid.log | awk '{printf $3}'`
+	bE0=`grep -i -w  bE0 ${jobid}.log | awk '{printf $2}'`
+	E0tot=$(awk "BEGIN {print  $E0 + $bE0}")
+
+	detunau=$(awk "BEGIN {print $detun / 27.2114}")
+
+	omega=$(awk "BEGIN {print $omres + $detunau}")
+	shift=$(awk "BEGIN {print $Vgf_gap + $E0tot }")
+	#------------------------------------
+
+	if [ -f ${jobid}_$detun.spec ]; then
+	    echo
+	    echo "REXS spectrum file for detuning = $detun found: ${jobid}_$detun.spec"
+	    echo
+	    cat ${jobid}_$detun.spec | sed "/#/ d" > temp_rexs.spec
+	    nxas=`cat -n temp_rexs.spec | tail -1 | awk '{printf $1}'`
+	else
+	    echo
+	    echo "ERROR!!"	
+	    echo "REXS spectrum file for detuning = $detun not found!!"
+	    echo "Have you run a -all calculation previously?"
+	    exit
+	fi
+
+	
+	cat > correl.inp <<EOF
+# XAS cross section input
+
+*Main
+runtype: self-abs
+
+*crosssection
+rexs-cs $nrexs temp_rexs.spec 
+xas-cs  $nxas  temp_xas.spec
+omega $omega
+
+EOF
+
+	time $fcorrel > ${jobid}-rexs-sa_csection_$detun.out
+	echo "# spectrum as function of emitted photon energy E', omega= $omega " > ${jobid}_$detun-sa.spec
+	sed -n "/> REXS-SA spectrum as function of emitted photon energy/,/> REXS-SA spectrum as function of energy loss/p" ${jobid}-rexs-sa_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/REXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_$detun-sa.spec
+
+
+	echo "# spectrum as function of energy loss E - E', omega= $omega " > ${jobid}_${detun}_Eloss-sa.spec
+	sed -n "/> REXS-SA spectrum as function of energy loss/,/# End of Calculation/p" ${jobid}-rexs-sa_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/REXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_${detun}_Eloss-sa.spec
+	#---------
+    done
+    #--------------------
+fi
+
 
 echo
 echo 'eSPec-Raman script finished'
-
+echo
+date
+echo

@@ -3,18 +3,20 @@
 # Vinicius Vaz da Cruz
 #
 
-PROG=raman
+PROG=correl
 CC=gcc
 FC=ifort -nofor_main
 #FC=gfortran
 #ifort flags
+# -fast conflicts with -mcmodel
+FFLAGS=-traceback -mcmodel medium -shared-intel
 #FFLAGS=-traceback -fast
 #gfortran flags
 #FFLAGS=-O3
-#CFLAGS=-O3 
+CFLAGS=-O3 
 #triolith flags
-CFLAGS=-O3 -I/software/apps/fftw/3.3.2/i1214/include -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3
-FFLAGS=-traceback -mcmodel medium -shared-intel -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3
+#CFLAGS=-O3 -I/software/apps/fftw/3.3.2/i1214/include -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3
+#FFLAGS=-traceback -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3
 
 all: main
 
@@ -31,7 +33,7 @@ splinesurf.o: src/splinesurf.f src/splinesurf.h
 	$(FC) $(FFLAGS) -c src/splinesurf.f
 
 fourier.o: src/fourier.c src/fourier.h
-	$(CC) $(CFLAGS) -c src/fourier.c 
+	$(CC) $(CFLAGS) -c src/fourier.c -lfftw3 -lm
 
 clean:
 	rm *~ src/*~ src/*.o

@@ -90,14 +90,20 @@ c--------spline procedure
       write(*,*)
       write(*,*)'Generating spline coefficients matrix'
       write(*,*)
+
+     
       
       CALL SYSTEM_CLOCK(TBEGIN,RATE)
 d     WRITE(*,*)'sizes', NXR,NYR,NF
 d     WRITE(*,*)'sizes', SIZE(X),SIZE(Y),SIZE(T)
       
+d       write(*,*)'>>>1'
       CALL DBSNAK(NP(1), Y, KX, YKNOT)
+d      write(*,*)'>>>2'
       IF(DIM(1:3).EQ.'.2D') CALL DBSNAK(NP(2), X, KX, XKNOT)
       CALL DBSNAK(NF, T, KX, TKNOT)
+
+d      write(*,*)'>>>3'
 
 d     DO I =1, NYR,1
 d     write(1,*) Y(I)

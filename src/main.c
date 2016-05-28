@@ -137,11 +137,11 @@ int main(){
   if(strncasecmp(dim,".2D",3)==0) printf("       m2 = %lf a.u.\n", m[1]);
   if(strncasecmp(dim,".2DCT",5)==0) printf("       m3 = %lf a.u.\n", m[2]);  
 
-  printf("\n>Final state propagation:\n");
-  printf("final state potential file: %s \n",potfile);
-  printf("propagation time: %lf %lf, step: %lf \n",pti,ptf,pstept);
-  printf("resonance frequency: %lf eV\n",Ereso);
-  printf("detuning: %lf\n",Ef[0]);
+  printf("\n>Energy parameters\n");
+  //printf("final state potential file: %s \n",potfile);
+  //printf("propagation time: %lf %lf, step: %lf \n",pti,ptf,pstept);
+  printf("shifted resonance frequency (Delta): %lf eV\n",Ereso*27.2114);
+  printf("detuning: %lf eV\n",Ef[0]);
   for(k=1;k<nEf;k++) printf("          %lf\n",Ef[k]);
   printf("\n Energy values will be shifted by %lf a.u. \n",shift);
 

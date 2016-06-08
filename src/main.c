@@ -141,7 +141,7 @@ int main(){
   //printf("final state potential file: %s \n",potfile);
   //printf("propagation time: %lf %lf, step: %lf \n",pti,ptf,pstept);
   printf("shifted resonance frequency (Delta): %lf eV\n",Ereso*27.2114);
-  printf("detuning: %lf eV\n",Ef[0]);
+  printf("detuning: %lf \n",Ef[0]);
   for(k=1;k<nEf;k++) printf("          %lf\n",Ef[k]);
   printf("\n Energy values will be shifted by %lf a.u. \n",shift);
 

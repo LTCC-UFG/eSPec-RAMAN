@@ -273,7 +273,7 @@ EOF
     cp ReIm_0001.dat  st_0.dat
 
     if [ -d wf_data ]; then
-	echo "previous wf_data will b replaced"
+	echo "previous wf_data will be replaced"
     else
 	mkdir wf_data
     fi

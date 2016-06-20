@@ -294,14 +294,15 @@ EOF
     #--------------------------------------------------#
 
     if [ "$print_level" == "minimal" ]; then
-	rm input.spc pot.inp
+	rm input.spc pot.inp initial_spc.aux
 	rm wf_data/eigvc_* movie.gplt veff_0001.dat
     elif [ "$print_level" == "essential" ]; then
-	rm input.spc pot.inp
+	rm input.spc pot.inp initial_spc.aux
 	rm wf_data/eigvc_* movie.gplt veff_0001.dat
     elif [ "$print_level" == "intermediate" ]; then
-	rm input.spc pot.inp movie.gplt veff_0001.dat
+	rm input.spc pot.inp movie.gplt veff_0001.dat initial_spc.aux
     elif [ "$print_level" == "savedisk" ]; then
+	rm input.spc pot.inp initial_spc.aux
 	rm wf_data/eigvc_*
     fi
 

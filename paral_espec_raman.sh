@@ -14,16 +14,17 @@
 #
 # Goiania, 27th of January of 2015
 #
-#Triolith environment:
-module load buildenv-intel/2015-1
-export LD_LIBRARY_PATH=/software/apps/intel/composer_xe_2015.1.133/compiler/lib/intel64
+
+#%header1%
+#%header2%
+#%header3%
 
 #eSPec path
-espec=/proj/xramp2015/progs/eSPec_v0.7/espec_v07.x
+espec=%especpath%
 #raman-eSPec path
-raman=/proj/xramp2015/progs/especman/eSPec-RAMAN/raman
+raman=%ramanpath%
 #fcorrel path
-fcorrel=/proj/xramp2015/progs/especman/eSPec-RAMAN/fcorrel/correl
+fcorrel=%fcorrelpath%
 
 #----------- Script modes ---------------#
 runtype=$1

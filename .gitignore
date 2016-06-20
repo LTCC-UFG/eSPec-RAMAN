@@ -51,3 +51,5 @@ test-xas/
 raman
 fcorrel/correl
 
+parallel-run_raman_water-triolith.sh
+paral_run_espec_raman_elk.sh

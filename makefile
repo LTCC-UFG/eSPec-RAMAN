@@ -4,7 +4,7 @@
 #
 
 PROG=raman
-CC=gcc
+CC=icc
 FC=ifort -nofor_main
 #FC=gfortran
 #ifort flags
@@ -14,7 +14,7 @@ FC=ifort -nofor_main
 #CFLAGS=-O3 
 #triolith flags
 CFLAGS=-O3 -I/software/apps/fftw/3.3.2/i1214/include -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3
-FFLAGS=-traceback -mcmodel medium -shared-intel -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3
+FFLAGS=-traceback -mcmodel large -shared-intel -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3 -check all -check noarg_temp_created -g
 
 all: main
 

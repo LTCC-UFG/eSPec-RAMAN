@@ -294,15 +294,15 @@ EOF
     #--------------------------------------------------#
 
     if [ "$print_level" == "minimal" ]; then
-	rm input.spc pot.inp initial_spc.aux
+	rm input.spc pot.inp
 	rm wf_data/eigvc_* movie.gplt veff_0001.dat
     elif [ "$print_level" == "essential" ]; then
-	rm input.spc pot.inp initial_spc.aux
+	rm input.spc pot.inp 
 	rm wf_data/eigvc_* movie.gplt veff_0001.dat
     elif [ "$print_level" == "intermediate" ]; then
-	rm input.spc pot.inp movie.gplt veff_0001.dat initial_spc.aux
+	rm input.spc pot.inp movie.gplt veff_0001.dat 
     elif [ "$print_level" == "savedisk" ]; then
-	rm input.spc pot.inp initial_spc.aux
+	rm input.spc pot.inp
 	rm wf_data/eigvc_*
     fi
 
@@ -451,11 +451,11 @@ EOF
     echo
 
     if [ "$print_level" == "minimal" ]; then 
-	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp 
+	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
     elif [ "$print_level" == "essential" ]; then
-	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp 
+	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
     elif [ "$print_level" == "intermediate" ]; then
-	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp
+	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
     fi
 
 
@@ -568,13 +568,15 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     #ndetun=`echo $all_detunings | wc -w`
 
     #-----------------------------
-    if [ -f "inwf_*.dat" ];
+    if [ -f "inwf_"*".dat" ];
     then
+	echo 'removing previous initial wavepacket file!'
 	rm inwf_*.dat 
     fi
     #-----------------------------
-    if [ -f "intens_*.dat" ];
+    if [ -f "intens_"*".dat" ];
     then
+	echo 'removing previous wavepacket norm file (intens)!'
 	rm intens_*.dat
     fi
    
@@ -1233,6 +1235,22 @@ EOF
     #--------------------
 fi
 
+
+#---------------
+if [ "$runtype" == "-clean" ]; then
+
+
+    rm intens*.dat inwf*.dat wp-vc*.dat
+    rm -r fin_vc* *cond-vc* wf_data/
+    rm -r fc_*.dat fc*.out
+    rm -r debug*.dat
+    rm -r fcorrel_vc*.dat fcorrel*.dat
+    rm *.log *~
+    rm xas-fcorrel.dat
+    rm input.spc
+    rm *.spec
+ 
+fi
 
 echo
 echo 'eSPec-Raman script finished'

@@ -65,15 +65,15 @@ runtype=$1
 if [ "$runtype" == "-clean" ]; then
 
 
-    rm intens*.dat inwf*.dat wp-vc*.dat
+    rm intens*.dat inwf*.dat wp-vc*.dat wp-vc*.inp
     rm -r fin_vc* *cond-vc* wf_data/
     rm -r fc_*.dat fc*.out
     rm -r debug*.dat
     rm -r fcorrel_vc*.dat fcorrel*.dat
-    rm *.log *~
+    rm *.log *~ *.out
     rm xas-fcorrel.dat
     rm input.spc
-    rm *.spec
+    rm *.spec raman.inp
     exit
 fi
 
@@ -136,6 +136,9 @@ step=`grep -i step $input | awk '{printf $2}'`
 #values of the detuning desired
 work=`grep -i -w detuning $input | awk '{printf $1}'`
 all_detunings=`grep -i -w detuning $input | sed "s/\<$work\>//g"`
+#or alternatively values of omega desired
+work=`grep -i -w omega_incoming $input | awk '{printf $1}'`
+all_omega=`grep -i -w omega_incoming $input | sed "s/\<$work\>//g"`
 #all_detunings="-2.0 -1.0 -0.1 0.0 0.1 1.0 2.0 4.0"
 
 #recomended propagation time based on Gamma
@@ -486,6 +489,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     echo 'Generating initial conditions for second propagation'
     echo
 
+    
     if [ -f  "${jobid}.log" ]; then
 	echo "# starting log file" > ${jobid}.log
     fi
@@ -529,6 +533,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 
     fi
 
+    
     #------- bending |0> energy
     bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
     echo
@@ -544,6 +549,15 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     echo "E0tot" $E0tot >> $jobid.log
     echo
     echo "total initial energy E0tot = $E0tot"
+
+    #defining detuning
+    if [ -z "$all_detunings" ]; then
+	echo
+	echo 'defining detuning values from the inputed incoming photon energies'
+	echo "detuning = omega_incoming - V_d + E0tot"
+	all_detunings=`echo "$all_omega" | awk -v Vd=$Vd -v E=$E0tot '{for(i=1; i<=NF; i++) print $i-(Vd * 27.2114)+(E*27.2114)}' | awk '{printf $1" "}'`
+	echo "$all_detunings eV"
+    fi
 
     #------- 
 

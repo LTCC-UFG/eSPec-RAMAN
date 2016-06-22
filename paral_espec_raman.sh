@@ -43,7 +43,9 @@ runtype=$1
 # 
 # -cfin  combination of -cond and -fin
 #
-# -cross 
+# -cross computes only the final cross section (all other steps must have been run previously)
+#
+# -clean deletes all files generated during the calculation
 # 
 #
 ############################3
@@ -56,6 +58,24 @@ runtype=$1
 #
 # -self REXS cross section with self-absorption factor ( you must have manually run -all and -xas previously!!)
 #
+
+
+
+#---------------
+if [ "$runtype" == "-clean" ]; then
+
+
+    rm intens*.dat inwf*.dat wp-vc*.dat
+    rm -r fin_vc* *cond-vc* wf_data/
+    rm -r fc_*.dat fc*.out
+    rm -r debug*.dat
+    rm -r fcorrel_vc*.dat fcorrel*.dat
+    rm *.log *~
+    rm xas-fcorrel.dat
+    rm input.spc
+    rm *.spec
+    exit
+fi
 
 
 
@@ -1235,22 +1255,6 @@ EOF
     #--------------------
 fi
 
-
-#---------------
-if [ "$runtype" == "-clean" ]; then
-
-
-    rm intens*.dat inwf*.dat wp-vc*.dat
-    rm -r fin_vc* *cond-vc* wf_data/
-    rm -r fc_*.dat fc*.out
-    rm -r debug*.dat
-    rm -r fcorrel_vc*.dat fcorrel*.dat
-    rm *.log *~
-    rm xas-fcorrel.dat
-    rm input.spc
-    rm *.spec
- 
-fi
 
 echo
 echo 'eSPec-Raman script finished'

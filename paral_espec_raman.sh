@@ -81,6 +81,14 @@ fi
 
 #-----------General input parameters---------------#
 input=$2
+# model used in the calculation
+model=`grep -i model $input | awk '{printf $2}'`
+if [ -z "$model" ] || [ "$model" == "2d+1d" ] || [ "$model" == "1d+1d" ] || [ "$model" == "nd+1d" ]; then
+    tpmodel=0
+elif [ "$model" == "2d" ] || [ "$model" == "1d" ] || [ "$model" == "nd" ] || [ "$model" == "simple" ] || [ "$model" == "pure" ]; then
+    tpmodel=1
+fi
+
 # short name to be the base file name for input, output and result files
 jobid=`grep -i jobid $input | awk '{printf $2}'`
 # dimension .1D .2D .2DCT
@@ -198,6 +206,14 @@ echo "------------------"
 echo
 echo "job running on" `hostname`
 date
+echo
+
+echo
+if [ $tpmodel -eq 0 ]; then
+    echo 'This calculations uses the general nD(TD) + 1D(TI) model'
+elif [ $tpmodel -eq 1 ]; then
+    echo 'This calculation uses the simple nD(TD) model'
+fi
 echo
 
 ulimit -s unlimited
@@ -332,7 +348,7 @@ EOF
 fi
 
 
-if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ]; then
+if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ] && [ $tpmodel -eq 0 ]; then
 
     #---------------Franck-Condon--------------#
 
@@ -550,7 +566,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     echo
     echo "total initial energy E0tot = $E0tot"
 
-    #defining detuning
+    #defining detuning (for the case that omega_incoming is given as input)
     if [ -z "$all_detunings" ]; then
 	echo
 	echo 'defining detuning values from the inputed incoming photon energies'

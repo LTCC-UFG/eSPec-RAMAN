@@ -511,8 +511,15 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     fi
 
     # bending states variables
-    nvc=`grep -i -w nvc $input | awk '{printf $2}'`
-    nvf=`grep -i -w nvf $input | awk '{printf $2}'`
+    #2d+1d like run
+    if [ $tpmodel -eq 0 ]; then 
+	nvc=`grep -i -w nvc $input | awk '{printf $2}'`
+	nvf=`grep -i -w nvf $input | awk '{printf $2}'`
+    #1d or 2D run 
+    elif [ $tpmodel -eq 1 ]; then 
+	nvc=1
+	nvf=1
+    fi
 
 
     Vg_min=`grep -i Vg_min $input | awk '{printf $2}'`
@@ -551,12 +558,26 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 
     
     #------- bending |0> energy
-    bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
-    echo
-    echo "Bending ground state energy bE0 = $bE0"
-    check=`grep -i -w  bE0 ${jobid}.log | awk '{printf $1}'`
-    if [ -z "$check" ]; then
-	echo "bE0 $bE0" >> ${jobid}.log
+    #2d+1d like run
+    if [ $tpmodel -eq 0 ]; then 
+
+	bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
+	echo
+	echo "Bending ground state energy bE0 = $bE0"
+	check=`grep -i -w  bE0 ${jobid}.log | awk '{printf $1}'`
+	if [ -z "$check" ]; then
+	    echo "bE0 $bE0" >> ${jobid}.log
+	fi
+
+    #1d or 2D run
+    elif [ $tpmodel -eq 1 ]; then  
+
+	bE0='0.000000000'
+	check=`grep -i -w  bE0 ${jobid}.log | awk '{printf $1}'`
+	if [ -z "$check" ]; then
+	    echo "bE0 $bE0" >> ${jobid}.log
+	fi
+	
     fi
 
     #--------
@@ -589,8 +610,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 
     check=`grep -i "shifted resonance frequency:" ${jobid}.log | awk '{printf $1}'`
     if [ -z "$check" ]; then
-	#Eres=$(awk "BEGIN {print $omres - $Vd_min + $E0}")
-	# \epsilon)_0^{(tot)} = $E0 + $bE0
+
 	Eres=$(awk "BEGIN {print $Vd - $Vd_min }")
 	echo "shifted resonance frequency: $Eres"
 	echo "shifted reson. frequency: $Eres" >> $jobid.log
@@ -633,12 +653,22 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
  ## -------------- Loop for bending modes ----------------   
     for (( i=0 ; i < ${nvc} ; i++ )); do
 
-	Evc[$i]=`sed -n "/from final state/,/Spectrum/p" fc_0vc.out | grep "|     $i        |" | awk '{printf $4}'`
-	shift[$i]=$(awk "BEGIN {print -${Evc[$i]} }")
-	echo
-	echo "bending state vc = $i, Evc$i = ${Evc[$i]} a.u."
-	echo "associated shift, -Evc$i = ${shift[$i]}"
-	echo	
+	#2d+1d like run
+	if [ $tpmodel -eq 0 ]; then 
+	    Evc[$i]=`sed -n "/from final state/,/Spectrum/p" fc_0vc.out | grep "|     $i        |" | awk '{printf $4}'`
+	    shift[$i]=$(awk "BEGIN {print -${Evc[$i]} }")
+	    echo
+	    echo "bending state vc = $i, Evc$i = ${Evc[$i]} a.u."
+	    echo "associated shift, -Evc$i = ${shift[$i]}"
+	    echo	
+	#1d or 2D run
+	elif [ $tpmodel -eq 1 ]; then
+	    Evc[$i]='0.0000000'
+	    shift[$i]=$(awk "BEGIN {print -${Evc[$i]} }")
+	    echo
+	    echo "associated shift, -Evc$i = ${shift[$i]}"
+	    echo	
+	fi
 
 	cat > raman.inp <<EOF
 # eSPec-Raman input
@@ -671,7 +701,13 @@ EOF
     cp raman.inp $rdir 
     cd $rdir
 
-    echo "Running parallel |Phi(0)> calculation for Bending $i"
+    #2d+1d like run
+    if [ $tpmodel -eq 0 ]; then
+	echo "Running parallel |Phi(0)> calculation for Bending $i"
+    #1d or 2D run
+    elif [ $tpmodel -eq 1 ]; then 
+	echo "Running |Phi(0)> calculation"
+    fi
 
     time $raman > ${jobid}_raman_Evc$i.out &
     cd ../ 
@@ -743,8 +779,20 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fin" ] || [ "$runtype" == "-cfi
 	rm fcorrel.dat
     fi
 
-    nvc=`grep -i -w nvc $input | awk '{printf $2}'`
-    nvf=`grep -i -w nvf $input | awk '{printf $2}'`
+   
+    # bending states variables
+    #2d+1d like run
+    if [ $tpmodel -eq 0 ]; then 
+	nvc=`grep -i -w nvc $input | awk '{printf $2}'`
+	nvf=`grep -i -w nvf $input | awk '{printf $2}'`
+    #1d or 2D run
+    elif [ $tpmodel -eq 1 ]; then 
+	nvc=1
+	nvf=1
+    fi
+
+
+
     work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
     all_detunings_files=`grep -i -w detun ${jobid}.log | sed "s/\<$work\>//g"`
 
@@ -846,14 +894,14 @@ EOF
         cd fin_vc${i}_$detun 
 
         sed "/#/ d" ../inwf_${detun}.dat > inwf.dat
+	
+	nfiles=`ls ReIm_*.dat | awk '{printf $1"\n"}' | tail -1 | cut -c 6-9`
+	last_file=`ls ReIm_*.dat | awk '{printf $1"\n"}' | tail -1`
+	rtime=`head -1 $last_file | awk '{printf $3}'`
 
-	    nfiles=`ls ReIm_*.dat | awk '{printf $1"\n"}' | tail -1 | cut -c 6-9`
-	    last_file=`ls ReIm_*.dat | awk '{printf $1"\n"}' | tail -1`
-	    rtime=`head -1 $last_file | awk '{printf $3}'`
 
 
-
-	    cat > correl.inp <<EOF
+	cat > correl.inp <<EOF
 # correl input
 
 *Main
@@ -872,7 +920,7 @@ wfunctions $nvc inwf.dat
 EOF
 
         echo "Running fcorrel in Background for vc $i"
-	    time $fcorrel > ${jobid}-correl_vc${i}_$detun.out &
+	time $fcorrel > ${jobid}-correl_vc${i}_$detun.out &
         cd ../
     done
     wait
@@ -933,24 +981,46 @@ fi
 if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
     echo "Final cross section"
 
-    nvc=`grep -i -w nvc $input | awk '{printf $2}'`
-    nvf=`grep -i -w nvf $input | awk '{printf $2}'`
+    
+    # bending states variables
+    #2d+1d like run
+    if [ $tpmodel -eq 0 ]; then 
+	nvc=`grep -i -w nvc $input | awk '{printf $2}'`
+	nvf=`grep -i -w nvf $input | awk '{printf $2}'`
+    #1d or 2D run
+    elif [ $tpmodel -eq 1 ]; then 
+	nvc=1
+	nvf=1
+    fi
+
     work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
     all_detunings_files=`grep -i -w detun ${jobid}.log | sed "s/\<$work\>//g"`
     corr_np=`grep -i -w corr_np ${jobid}.log | awk '{printf $2}'`
 
 
+    if [ -f Evf.dat ]; then
+	rm Evf.dat
+    fi
 
 
     for ((i=0 ; i < $nvf ; i++)); do
-	Evf=`sed -n "/from final state/,/Spectrum/p" fc_vcvf.out | grep "|     $i        |" | awk '{printf $4}'`
-	echo $Evf >> Evf.dat
+	#2d+1d like run
+	if [ $tpmodel -eq 0 ]; then 
+	    Evf=`sed -n "/from final state/,/Spectrum/p" fc_vcvf.out | grep "|     $i        |" | awk '{printf $4}'`
+	    echo $Evf >> Evf.dat
+	#1d or 2D run
+	elif [ $tpmodel -eq 1 ]; then 
+	    Evf='0.000000'
+	    echo $Evf >> Evf.dat
+	fi
     done
 
     Evf=`cat Evf.dat | awk '{printf $1" "}'`
     rm Evf.dat
 
-    echo "Final bending energies " $Evf
+    if [ $tpmodel -eq 0 ]; then 
+	echo "Final bending energies " $Evf
+    fi
 
     for detun in `echo $all_detunings_files`
     do
@@ -968,10 +1038,18 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
 	omega=$(awk "BEGIN {print $omres + $detunau}")
 	shift=$(awk "BEGIN {print $Vgf_gap + $E0tot }")
 	#------------------------------------
-
-	cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat
-	cat  fc_vcvf.dat | awk '{printf $1" \n"}' >> fcond.dat
-	cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat
+	#2d+1d like run
+	if [ $tpmodel -eq 0 ]; then 
+	    cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat
+	    cat  fc_vcvf.dat | awk '{printf $1" \n"}' >> fcond.dat
+	    cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat
+	#1d or 2D run
+	elif [ $tpmodel -eq 1 ]; then 
+	    echo '1.00000' > fcond.dat
+	    echo '1.00000' >> fcond.dat
+	    cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat
+	fi
+	   
 
 	cat > correl.inp <<EOF
 # final cross section input
@@ -1052,26 +1130,47 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
     Vf_min=`grep -i Vf_min $input | awk '{printf $2}'`
     Vd=`grep -i Vd_vert $input | awk '{printf $2}'`
 
-    nvc=`grep -i -w nvc $input | awk '{printf $2}'`
-    echo "number of core-excited bending modes included, nvc: $nvc"
-    nvf=`grep -i -w nvf $input | awk '{printf $2}'`
+    #2d+1d like run
+    if [ $tpmodel -eq 0 ]; then
+	nvc=`grep -i -w nvc $input | awk '{printf $2}'`
+	echo "number of core-excited bending modes included, nvc: $nvc"
+	nvf=`grep -i -w nvf $input | awk '{printf $2}'`
+    #1d or 2D run
+    elif [ $tpmodel -eq 1 ]; then 	
+	nvc='1'
+	nvf='1'
+    fi
+    
     corr_np=`cat -n xas-fcorrel.dat | tail -1 | awk '{printf $1}'`
 
+    if [ -f Evc.dat ]; then
+	rm Evc.dat
+    fi
+
     for ((i=0 ; i < $nvf ; i++)); do
-	Evc=`sed -n "/from final state/,/Spectrum/p" fc_0vc.out | grep "|     $i        |" | awk '{printf $4}'`
-	echo $Evc >> Evc.dat
+	
+	#2d+1d like run
+	if [ $tpmodel -eq 0 ]; then
+	    Evc=`sed -n "/from final state/,/Spectrum/p" fc_0vc.out | grep "|     $i        |" | awk '{printf $4}'`
+	    echo $Evc >> Evc.dat
+	#1d or 2D run
+	elif [ $tpmodel -eq 1 ]; then 
+	    Evc='0.000000'
+	    echo $Evc >> Evc.dat
+	fi
+	
     done
 
     Evc=`cat Evc.dat | awk '{printf $1" "}'`
     rm Evc.dat
 
-    echo "Core-excited bending energies " $Evc "(a.u.)"
+    if [ $tpmodel -eq 0 ]; then
+	echo "Core-excited bending energies " $Evc "(a.u.)"
+    fi
 
 #---------
     check=`grep -i "shifted resonance frequency:" ${jobid}.log | awk '{printf $1}'`
     if [ -z "$check" ]; then
-	#Eres=$(awk "BEGIN {print $omres - $Vd_min + $E0}")
-	# \epsilon)_0^{(tot)} = $E0 + $bE0
 	Eres=$(awk "BEGIN {print $Vd - $Vd_min }")
 	echo "shifted resonance frequency(Delta): $Eres a.u."
 	echo "shifted reson. frequency: $Eres" >> $jobid.log
@@ -1114,13 +1213,29 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
 
     fi
     #------- bending |0> energy
-    bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
-    echo
-    echo "Bending ground state energy bE0 = $bE0 a.u."
-    check=`grep -i -w  bE0 ${jobid}.log | awk '{printf $1}'`
-    if [ -z "$check" ]; then
-	echo "bE0 $bE0" >> ${jobid}.log
+    #2d+1d like run
+    if [ $tpmodel -eq 0 ]; then 
+
+	bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
+	echo
+	echo "Bending ground state energy bE0 = $bE0 a.u."
+	check=`grep -i -w  bE0 ${jobid}.log | awk '{printf $1}'`
+	if [ -z "$check" ]; then
+	    echo "bE0 $bE0" >> ${jobid}.log
+	fi
+
+    #1d or 2D run
+    elif [ $tpmodel -eq 1 ]; then  
+	
+	bE0='0.000000000'
+	check=`grep -i -w  bE0 ${jobid}.log | awk '{printf $1}'`
+	if [ -z "$check" ]; then
+	    echo "bE0 $bE0" >> ${jobid}.log
+	fi
+
     fi
+
+
     #--------
     E0tot=$(awk "BEGIN {print  $E0 + $bE0}")
     echo "Total initial energy E0tot = $E0tot a.u."
@@ -1141,11 +1256,16 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
     echo "starting final spectrum calculation"
     echo
 
-   
+    
+    #2d+1d like run
+    if [ $tpmodel -eq 0 ]; then 
 	cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat #FOR XAS WE ONLY NEED GROUND->CORE FC FACTORS
-	#cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat # CHECK THIS <<< 
+    #1d or 2D run
+    elif [ $tpmodel -eq 1 ]; then 
+	 echo '1.00000' > fcond.dat
+    fi
 	
-	window=$(awk "BEGIN {print $Gamma / 27.2114}")
+    window=$(awk "BEGIN {print $Gamma / 27.2114}")
 
 	cat > correl.inp <<EOF
 # XAS cross section input

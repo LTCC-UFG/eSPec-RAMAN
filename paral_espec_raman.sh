@@ -68,7 +68,7 @@ if [ "$runtype" == "-clean" ]; then
     rm intens*.dat inwf*.dat wp-vc*.dat wp-vc*.inp
     rm -r fin_vc* *cond-vc* wf_data/
     rm -r fc_*.dat fc*.out
-    rm -r debug*.dat
+    rm -r debug*.dat veff_0001.dat movie.gplt pot.inp
     rm -r fcorrel_vc*.dat fcorrel*.dat
     rm *.log *~ *.out
     rm xas-fcorrel.dat

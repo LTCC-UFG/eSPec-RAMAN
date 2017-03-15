@@ -46,6 +46,8 @@ int main(){
   char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10],fnam[20],fnam2[20],qfnam[20],jobnam[50];
   FILE *arq=fopen("raman.inp","r");
   FILE *deb=fopen("debug.dat","w");
+  FILE *fqop;
+  double *dipole;
   //--- spline variables
   int NTG,fpspl[4],ftinfo,kx;
   double *bcoefre,*bcoefim,*xknot,*yknot,*tknot;
@@ -147,7 +149,18 @@ int main(){
 
   if(qop == 0){
     printf("\n Transition operator will be read from file %s \n",qfnam);
+    fqop=fopen(qfnam,"r");
+    dipole=malloc(np[0]*np[1]*sizeof(double));
+    //read dipole moments
+    for(i=0;i<np[1];i++){
+      if( strncasecmp(dim,".2D",3)==0 ) fscanf(fqop,"%lf",&xwork);
+      for(j=0;j<np[0];j++){
+	fscanf(fqop,"%lf %lf",&xwork,&dipole[i*np[0] + j]);
+      }
+    }
+    //-----
   }
+
   
   printf("\n>Fourier transformparameters:\n");
   printf("grid is 2^%d, time step = %E \n",twopow,steptspl);
@@ -333,16 +346,26 @@ int main(){
       norm = 0.0e+0;
       for(i=0;i<np[1];i++){
 	for(j=0;j<np[0];j++){
-	  val[0] = dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefre);
-	  val[1] = dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefim);
+	  if(qop==1){
+	    val[0] = dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefre);
+	    val[1] = dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefim);
+	  }else{
+	    val[0] = dipole[i*np[0] + j] * dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefre);
+	    val[1] = dipole[i*np[0] + j] * dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefim);
+	  }
 	  norm = norm + val[0]*val[0] + val[1]*val[1];
 	}
       }
       fprintf(wp_E,"# ominc = %E eV,  Intensity = %E \n",Ef[k]*27.2114,norm);
       for(i=0;i<np[1];i++){
 	for(j=0;j<np[0];j++){
-	  val[0] = (1.00/sqrt(norm))*dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefre);
-	  val[1] = (1.00/sqrt(norm))*dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefim);
+	  if(qop==1){
+	    val[0] = (1.00/sqrt(norm))*dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefre);
+	    val[1] = (1.00/sqrt(norm))*dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefim);
+	  }else{
+	    val[0] = (dipole[i*np[0] + j]/sqrt(norm))*dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefre);
+	    val[1] = (dipole[i*np[0] + j]/sqrt(norm))*dbs3vl_ (&Y[j],&X[i],&Ef[k],&kx,&kx,&kx,yknot,xknot,eknot,&np[0],&np[1],&nE,bcoefim);
+	  }
 	  fprintf(wp_E,"%E %E %E %E \n",X[i],Y[j],val[0],val[1]);
 	  fprintf(wp2_E,"%E %E %E %E \n",X[i],Y[j],val[0],val[1]);
 	}
@@ -355,20 +378,30 @@ int main(){
       /* I don't think we can normalize the wavefunction for a given E separately...*/
       norm = 0.0e+0;
       for(j=0;j<np[0];j++){
-	val[0] = dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefre);
-	val[1] = dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefim);
+	if(qop==1){
+	  val[0] = dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefre);
+	  val[1] = dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefim);
+	}else{
+	  val[0] = dipole[j] * dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefre);
+	  val[1] = dipole[j] * dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefim);
+	}
 	norm = norm + val[0]*val[0] + val[1]*val[1];
       }
       fprintf(wp_E,"# ominc = %E eV,  Intensity = %E \n",Ef[k]*27.2114,norm);
       for(j=0;j<np[0];j++){
-	val[0] = (1.00/sqrt(norm))*dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefre);
-	val[1] = (1.00/sqrt(norm))*dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefim);
+	if(qop==1){
+	  val[0] = (1.00/sqrt(norm))*dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefre);
+	  val[1] = (1.00/sqrt(norm))*dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefim);
+	}else{
+	  val[0] = (dipole[j]/sqrt(norm))*dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefre);
+	  val[1] = (dipole[j]/sqrt(norm))*dbs2vl_ (&Y[j],&Ef[k],&kx,&kx,yknot,eknot,&np[0],&nE,bcoefim);
+	}
 	fprintf(wp_E,"%E %E %E \n",Y[j],val[0],val[1]);
       }
     }
     fclose(wp_E);
   } 
-
+  
   printf("\n# End of Calculation!\n");
   printf("# Raman terminated successfully!\n");
   return 0;

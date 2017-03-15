@@ -13,8 +13,9 @@ FC=ifort -nofor_main
 #FFLAGS=-O3
 #CFLAGS=-O3 
 #triolith flags
-CFLAGS=-O3 -I/software/apps/fftw/3.3.2/i1214/include -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3
-FFLAGS=-traceback -mcmodel large -shared-intel -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3 -check all -check noarg_temp_created -g
+CFLAGS=-O0 -I/software/apps/fftw/3.3.2/i1214/include -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3
+FFLAGS=-traceback -O0 -mcmodel large -shared-intel -L/software/apps/fftw/3.3.2/i1214/lib -lfftw3 
+#-check all -check noarg_temp_created -g
 
 all: main
 

@@ -67,12 +67,12 @@ if [ "$runtype" == "-clean" ]; then
 
     rm intens*.dat inwf*.dat wp-vc*.dat wp-vc*.inp
     rm -r fin_vc* *cond-vc* wf_data/
-    rm -r fc_*.dat fc*.out
-    rm -r debug*.dat veff_0001.dat movie.gplt pot.inp
-    rm -r fcorrel_vc*.dat fcorrel*.dat
+    rm -r fc_*.dat fc*.out fc*.inp fcond.dat
+    rm -r debug*.dat veff_0001.dat movie.gplt pot.inp bpot.inp
+    rm -r fcorrel_vc*.dat fcorrel*.dat correl.inp
     rm *.log *~ *.out
     rm xas-fcorrel.dat
-    rm input.spc
+    rm input.spc initial_spc.aux
     rm *.spec raman.inp
     exit
 fi

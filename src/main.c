@@ -43,7 +43,7 @@ int main(){
   double ti,tf,pti,ptf,pstept,xi,xf,yi,yf,stept,sh[3],width,potshift,stepw,stepz;
   double *X,*Y,*T,rmse,xwork,*W,*Z,mem,Ereso;
   double m[3],x,y,pk,pki,pkf,steppk,ansk,val[5];
-  char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10],fnam[20],fnam2[20],qfnam[20],jobnam[50];
+  char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10],fnam[20],fnam2[20],qfnam[50],jobnam[50];
   FILE *arq=fopen("raman.inp","r");
   FILE *deb=fopen("debug.dat","w");
   FILE *fqop;
@@ -156,6 +156,7 @@ int main(){
       if( strncasecmp(dim,".2D",3)==0 ) fscanf(fqop,"%lf",&xwork);
       for(j=0;j<np[0];j++){
 	fscanf(fqop,"%lf %lf",&xwork,&dipole[i*np[0] + j]);
+	//printf("%d %lf ",i*np[0] + j,dipole[i*np[0] + j]);
       }
     }
     //-----

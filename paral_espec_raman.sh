@@ -119,7 +119,7 @@ if [ "$initial_wf" == ".CALC" ] || [ -z "$initial_wf" ]; then
 	nist='10'
     else
 	instate=`grep -i -w init_state $input | awk '{printf $2}'`
-	if [ $instate > 10 ]; then
+	if [ $instate -gt 10 ]; then
 	    nist=$(echo 2 + $instate | bc)
 	    echo "number of vibrational eigenstates to be calculated changed to $nist"
 	fi
@@ -195,6 +195,22 @@ fi
 print_level=`grep -i -w print_level $input | awk '{printf $2}'`
 if [ -z "$print_level" ]; then
     print_level="essential"
+fi
+
+#transition dipole moments
+dipole_id=`grep -i -w dipole_id $input | awk '{printf $2}'`
+if [ -z "$dipole_id" ]; then
+    dip_id="n"
+else
+    dip_id="y"
+    echo "dipoles from initial state to decaying state will be ignored (not implemented)"
+fi
+
+dipole_df=`grep -i -w dipole_df $input | awk '{printf $2}'`
+if [ -z "$dipole_df" ]; then
+    dip_df="n"
+else
+    dip_df="y"
 fi
 
 #---------------Initial Propagation---------------#
@@ -276,7 +292,6 @@ $mode
 .YES
 $crosskey
 $cross/
-
 
 **TI
 *TPDIAG
@@ -670,6 +685,15 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 	    echo	
 	fi
 
+	#transition dipole moments
+	if [ "$dip_df" == "y" ]; then
+	    echo ">>" $dip_df
+	    echo "transition dipole moments will be read from file: $dipole_df"
+	    dipole_df_input="Qoperator ../$dipole_df"
+	else
+	    dipole_df_input=""
+	fi
+	
 	cat > raman.inp <<EOF
 # eSPec-Raman input
 
@@ -689,6 +713,8 @@ detuning: $all_detunings
 Fourier: 10
 Window
 .EXPDEC $Gamma
+$dipole_df_input
+
 EOF
 
 

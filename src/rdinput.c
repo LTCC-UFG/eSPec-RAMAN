@@ -78,7 +78,7 @@ int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, doubl
 	    *nEf = k;
 	}
 	if(strncasecmp(workk,"shift",5)==0)fscanf(arq,"%lf",shift);
-	if(strncasecmp(workk,"Qoperator",7)==0){
+	if(strncasecmp(workk,"Qoperator",9)==0){
 	  *qop = 0;
 	  fscanf(arq,"%s",qfnam);
 	}

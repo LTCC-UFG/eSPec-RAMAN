@@ -317,19 +317,21 @@ int main(){
       fcorrelIm[i] = malloc(nf*sizeof(double));
     }
 
-    // read all correlation functions
+    // read all correlation functions -----------------
     fcorr = fopen(fcornam,"r");
     for(j=0;j<nvc;j++){
       for(ii=0;ii<nf;ii++){
-	fscanf(fcorr,"%lf",&T[ii]);
-	T[ii] = T[ii] * 41.3413745758e+0;
-	for(l=0;l<nvc;l++){
-	  k = l + j*nvc;
-	  fscanf(fcorr,"%lf %lf",&fcorrelRe[k][ii],&fcorrelIm[k][ii]);
-	}
+    	fscanf(fcorr,"%lf",&T[ii]);
+    	T[ii] = T[ii] * 41.3413745758e+0;
+    	for(l=0;l<nvc;l++){
+    	  k = l + j*nvc;
+    	  fscanf(fcorr,"%lf %lf",&fcorrelRe[k][ii],&fcorrelIm[k][ii]);
+    	}
       }
     }
     fclose(fcorr);
+    //--------------------------------------------
+
 
     stept = (T[nf-1] - T[0])/(nf - 1.0);
 
@@ -354,7 +356,7 @@ int main(){
 	  FC = FCGVc[l]*FCVcVf[l][i]*FCVcVf[j][i]*FCGVc[j];
 	  // we multiply by the intensity, due to previous normalization of wf in the energy domain
 	  fprintf(deb2,"vf = %d, vc = %d vc' = %d (%d), FC = %E \n",i,j,l,k,FC);
-	  FC = FC * intens[j]*intens[l];
+	  FC = FC * sqrt(intens[j])*sqrt(intens[l]);
 	  for(ii=0;ii<nf;ii++){
 	    tfcorrelRe[ii] = tfcorrelRe[ii] + FC*(fcorrelRe[k][ii]*cos(Evf[i]*T[ii]) + fcorrelIm[k][ii]*sin(Evf[i]*T[ii]) );
 	    tfcorrelIm[ii] = tfcorrelIm[ii] + FC*(fcorrelIm[k][ii]*cos(Evf[i]*T[ii]) - fcorrelRe[k][ii]*sin(Evf[i]*T[ii]) );
@@ -526,12 +528,16 @@ int main(){
 
     // eq. (85) from file
 
+    //debug serious problem with franck condon
+    deb2=fopen("debug2.dat","w");
+
     for(j=0;j<nvc;j++){
       //FC = intens[0] * FCGVc[j]* FCGVc[j];
       FC = FCGVc[j]* FCGVc[j];
+      fprintf(deb2,"vc = %d, FC= %lf, E%d = %lf \n",j,FC,j,Evc[j]);
       for(ii=0;ii<nf;ii++){
-	tfcorrelRe[ii] = tfcorrelRe[ii] + FC*(fcorrelRe[0][ii]*cos(Evc[i]*T[ii]) + fcorrelIm[0][ii]*sin(Evc[i]*T[ii]) );
-	tfcorrelIm[ii] = tfcorrelIm[ii] + FC*(fcorrelIm[0][ii]*cos(Evc[i]*T[ii]) - fcorrelRe[0][ii]*sin(Evc[i]*T[ii]) );
+	tfcorrelRe[ii] = tfcorrelRe[ii] + FC*(fcorrelRe[0][ii]*cos(Evc[j]*T[ii]) + fcorrelIm[0][ii]*sin(Evc[j]*T[ii]) );
+	tfcorrelIm[ii] = tfcorrelIm[ii] + FC*(fcorrelIm[0][ii]*cos(Evc[j]*T[ii]) - fcorrelRe[0][ii]*sin(Evc[j]*T[ii]) );
 	//debug below
 	//tfcorrelRe[ii] = tfcorrelRe[ii] + FC*fcorrelRe[k][ii];
 	//tfcorrelIm[ii] = tfcorrelIm[ii] + FC*fcorrelIm[k][ii];

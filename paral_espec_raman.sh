@@ -77,17 +77,37 @@ if [ "$runtype" == "-clean" ]; then
     exit
 fi
 
+echo "-----------------"
+echo "eSPec-Raman script"
+echo "------------------"
 
+echo
+echo "job running on" `hostname`
+date
+echo
+
+ulimit -s unlimited
 
 #-----------General input parameters---------------#
 input=$2
 # model used in the calculation
 model=`grep -i model $input | awk '{printf $2}'`
-if [ -z "$model" ] || [ "$model" == "2d+1d" ] || [ "$model" == "1d+1d" ] || [ "$model" == "nd+1d" ]; then
+if [ -z "$model" ] || [ "$model" == "2d+1d" ] || [ "$model" == "1d+1d" ] || [ "$model" == "nd+1d" ] || [ "$model" == "1d+2d" ] || [ "$model" == "1d+3d" ] || [ "$model" == "1d+md" ]; then
     tpmodel=0
 elif [ "$model" == "2d" ] || [ "$model" == "1d" ] || [ "$model" == "nd" ] || [ "$model" == "simple" ] || [ "$model" == "pure" ]; then
     tpmodel=1
+else
+    echo "error: Invalid model choice $model"
+    exit
 fi
+
+echo
+if [ $tpmodel -eq 0 ]; then
+    echo 'This calculations uses the general nD(TD) + mD(TI) model'
+elif [ $tpmodel -eq 1 ]; then
+    echo 'This calculation uses the simple nD(TD) model'
+fi
+echo
 
 # short name to be the base file name for input, output and result files
 jobid=`grep -i jobid $input | awk '{printf $2}'`
@@ -103,6 +123,16 @@ if [ "$dim" == ".2DCT" ]; then
 	exit 666
     fi
 fi
+
+# number of independent modes to be included in the FC factor calculations
+dim_fc=`grep -i fc_dimens $input | awk '{printf $2}'`
+if [ -z "$dim_fc" ]; then
+    echo "default single mode FC factors."
+    dim_fc='.1D'
+else
+    echo "$dim_fc independent modes will be included in the FC factors."
+fi
+
 # number of discretization points used. for .2D use npoints="n1 n2"
 work=`grep -i -w npoints $input | awk '{printf $1}'`
 npoints=`grep -i -w npoints $input | sed "s/\<$work\>//g"`
@@ -215,28 +245,10 @@ fi
 
 #---------------Initial Propagation---------------#
 
-echo "-----------------"
-echo "eSPec-Raman script"
-echo "------------------"
-
-echo
-echo "job running on" `hostname`
-date
-echo
-
-echo
-if [ $tpmodel -eq 0 ]; then
-    echo 'This calculations uses the general nD(TD) + 1D(TI) model'
-elif [ $tpmodel -eq 1 ]; then
-    echo 'This calculation uses the simple nD(TD) model'
-fi
-echo
-
-ulimit -s unlimited
-
 
 if [ "$runtype" == "-all" ] || [ "$runtype" == "-init" ] || [ "$runtype" == "-xas" ]; then
 
+    echo 
     echo ' Starting initial propagation'
     echo
 
@@ -322,7 +334,6 @@ $absrang
 
 **END
 EOF
-
     time $espec > ${jobid}_init.out
 
     #cp ReIm_0001.dat  st_0.dat
@@ -362,10 +373,8 @@ EOF
 
 fi
 
-
-if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ] && [ $tpmodel -eq 0 ]; then
-
-    #---------------Franck-Condon--------------#
+#---------------SPECIAL CASE: 1D Franck-Condon--------------#
+if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ] && [ $tpmodel -eq 0 ] && [ "$dim_fc" == ".1D" ]; then
 
     # potential files
     bendinit_pot=`grep -i -w bend_init_pot $input | awk '{printf $2}'`
@@ -514,6 +523,175 @@ EOF
 
 
 fi
+
+#------ Multidimensional FC factors---------------------------------------------#
+if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ] && [ $tpmodel -eq 0 ] && [ "$dim_fc" != ".1D" ]; then
+    echo
+    echo "Multidimensional FC calculation"
+    echo "-------------------------------"
+    echo
+    nmodes=$(echo $dim_fc | sed 's/[^0-9]*//g')
+    for (( i=0; i<nmodes; i++ ))
+    do
+	# potential files
+	cc=$(echo $i + 2 | bc)
+	fc_np[$i]=`grep -i -w fc_npoints $input | awk -v col=$cc '{printf $col}'`
+	fc_mass[$i]=`grep -i -w fc_mass $input | awk -v col=$cc '{printf $col}'`
+	fc_nvc[$i]=`grep -i -w fc_nvc $input | awk -v col=$cc '{printf $col}'`
+	fc_nvf[$i]=`grep -i -w fc_nvf $input | awk -v col=$cc '{printf $col}'`
+
+	fc_init_pot[$i]=`grep -i -w fc_init_pot $input | awk -v col=$cc '{printf $col}'`
+	fc_decay_pot[$i]=`grep -i -w fc_decay_pot $input | awk -v col=$cc '{printf $col}'`
+	fc_fin_pot[$i]=`grep -i -w fc_fin_pot $input | awk -v col=$cc '{printf $col}'`
+
+	echo "Mode $i "
+	echo "np : ${fc_np[$i]}"
+	echo "mass : ${fc_mass[$i]} amu"
+	echo "nvc : ${fc_nvc[$i]}"
+	echo "nvf : ${fc_nvf[$i]}"
+	echo "potentials:  ${fc_init_pot[$i]}, ${fc_decay_pot[$i]}, ${fc_fin_pot[$i]}"
+	echo
+    done
+    
+
+    for (( i=0; i<nmodes; i++ ))
+    do
+	echo 'Computing Franck-Condon Factors'
+	echo
+		
+	echo 'computing <0|vc>'
+	cat $fc_init_pot > fc_${i}_pot.inp
+	cat $fc_decay_pot >> fc_${i}_pot.inp
+	
+	cat > fc_0vc.inp <<EOF
+*** eSPec input file ***
+========================
+**MAIN
+*TITLE
+ +++++ cs2 Raman fin +++++
+*DIMENSION
+.1D
+ $bend_np/
+*POTENTIAL
+.FILE
+bpot.inp
+*MASS
+$bend_mass/
+*TPCALC
+.SPECTRUM
+.TI
+*INIEIGVC
+.CALC
+*CHANGE
+.YES
+*PRTCRL
+.PARTIAL
+*PRTPOT
+.NO
+*PRTEIGVC
+.NO
+*PRTVEFF
+.NO
+*PRTEIGVC2
+.NO
+
+**TI
+*TPDIAG
+.MTRXDIAG 
+*NIST
+ 1  0/
+*NFST
+ $nvc  0/
+*ABSTOL
+ 1D-6/
+
+**END
+
+EOF
+	
+	cp fc_0vc.inp input.spc
+	time $espec > fc_0vc.out
+	
+	sed -n "/Spectrum/,/The/p" fc_0vc.out | sed "/Spec/ d" | sed "/==/ d" | sed "/*/ d" | sed "/The/ d" | awk '{printf $2"\t"$4" "$5" "$6"\n"}' > fc_0vc.dat
+
+	echo 'done!'
+	echo
+
+	echo 'computing <vc|vf>'
+
+	cat $benddecay_pot > bpot.inp
+	cat $bendfin_pot >> bpot.inp
+
+	cat > fc_vcvf.inp <<EOF
+*** eSPec input file ***
+========================
+**MAIN
+*TITLE
+ +++++ cs2 Raman fin +++++
+*DIMENSION
+.1D
+ $bend_np/
+*POTENTIAL
+.FILE
+bpot.inp
+*MASS
+$bend_mass/
+*TPCALC
+.SPECTRUM
+.TI
+*INIEIGVC
+.CALC
+*CHANGE
+.YES
+*PRTCRL
+.PARTIAL
+*PRTPOT
+.NO
+*PRTEIGVC
+.NO
+*PRTVEFF
+.NO
+*PRTEIGVC2
+.NO
+
+**TI
+*TPDIAG
+.MTRXDIAG 
+*NIST
+ $nvc  0/
+*NFST
+ $nvf  0/
+*ABSTOL
+ 1D-6/
+
+**END
+
+EOF
+
+	cp fc_vcvf.inp input.spc
+	time $espec > fc_vcvf.out
+	
+	sed -n "/Spectrum/,/The/p" fc_vcvf.out | sed "/Spec/ d" | sed "/==/ d" | sed "/*/ d" | sed "/The/ d" | awk '{printf $2"\t"$4" "$5" "$6"\n"}' > fc_vcvf.dat
+
+	echo 'done!'
+	echo
+	echo 'Finished Franck-Condon section'
+	echo
+
+	if [ "$print_level" == "minimal" ]; then 
+	    rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
+	elif [ "$print_level" == "essential" ]; then
+	    rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
+	elif [ "$print_level" == "intermediate" ]; then
+	    rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
+	fi
+
+	#end loop over number of modes
+    done
+    
+    
+fi
+
 
 if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cfin" ] ; then
     #---------------|Phi(0)> calculation--------------#

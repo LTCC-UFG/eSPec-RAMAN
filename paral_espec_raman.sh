@@ -553,143 +553,18 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas"
 	echo
     done
     
-
-    for (( i=0; i<nmodes; i++ ))
-    do
-	echo 'Computing Franck-Condon Factors'
-	echo
-		
-	echo 'computing <0|vc>'
-	cat $fc_init_pot > fc_${i}_pot.inp
-	cat $fc_decay_pot >> fc_${i}_pot.inp
-	
-	cat > fc_0vc.inp <<EOF
-*** eSPec input file ***
-========================
-**MAIN
-*TITLE
- +++++ cs2 Raman fin +++++
-*DIMENSION
-.1D
- $bend_np/
-*POTENTIAL
-.FILE
-bpot.inp
-*MASS
-$bend_mass/
-*TPCALC
-.SPECTRUM
-.TI
-*INIEIGVC
-.CALC
-*CHANGE
-.YES
-*PRTCRL
-.PARTIAL
-*PRTPOT
-.NO
-*PRTEIGVC
-.NO
-*PRTVEFF
-.NO
-*PRTEIGVC2
-.NO
-
-**TI
-*TPDIAG
-.MTRXDIAG 
-*NIST
- 1  0/
-*NFST
- $nvc  0/
-*ABSTOL
- 1D-6/
-
-**END
-
-EOF
-	
-	cp fc_0vc.inp input.spc
-	time $espec > fc_0vc.out
-	
-	sed -n "/Spectrum/,/The/p" fc_0vc.out | sed "/Spec/ d" | sed "/==/ d" | sed "/*/ d" | sed "/The/ d" | awk '{printf $2"\t"$4" "$5" "$6"\n"}' > fc_0vc.dat
-
-	echo 'done!'
-	echo
-
-	echo 'computing <vc|vf>'
-
-	cat $benddecay_pot > bpot.inp
-	cat $bendfin_pot >> bpot.inp
-
-	cat > fc_vcvf.inp <<EOF
-*** eSPec input file ***
-========================
-**MAIN
-*TITLE
- +++++ cs2 Raman fin +++++
-*DIMENSION
-.1D
- $bend_np/
-*POTENTIAL
-.FILE
-bpot.inp
-*MASS
-$bend_mass/
-*TPCALC
-.SPECTRUM
-.TI
-*INIEIGVC
-.CALC
-*CHANGE
-.YES
-*PRTCRL
-.PARTIAL
-*PRTPOT
-.NO
-*PRTEIGVC
-.NO
-*PRTVEFF
-.NO
-*PRTEIGVC2
-.NO
-
-**TI
-*TPDIAG
-.MTRXDIAG 
-*NIST
- $nvc  0/
-*NFST
- $nvf  0/
-*ABSTOL
- 1D-6/
-
-**END
-
-EOF
-
-	cp fc_vcvf.inp input.spc
-	time $espec > fc_vcvf.out
-	
-	sed -n "/Spectrum/,/The/p" fc_vcvf.out | sed "/Spec/ d" | sed "/==/ d" | sed "/*/ d" | sed "/The/ d" | awk '{printf $2"\t"$4" "$5" "$6"\n"}' > fc_vcvf.dat
-
-	echo 'done!'
-	echo
-	echo 'Finished Franck-Condon section'
-	echo
-
-	if [ "$print_level" == "minimal" ]; then 
-	    rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
-	elif [ "$print_level" == "essential" ]; then
-	    rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
-	elif [ "$print_level" == "intermediate" ]; then
-	    rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
-	fi
-
-	#end loop over number of modes
-    done
+    echo 'done!'
+    echo
+    echo 'Finished Franck-Condon section'
+    echo
     
-    
+    if [ "$print_level" == "minimal" ]; then 
+	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
+    elif [ "$print_level" == "essential" ]; then
+	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
+    elif [ "$print_level" == "intermediate" ]; then
+	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
+    fi   
 fi
 
 

@@ -2,8 +2,10 @@ import numpy as np
 import itertools as it
 from numpy import linalg as LA
 from scipy.integrate import simps
+import matplotlib.pyplot as plt
 
 #---------------------------------------------------------------------------------
+
 def kinetic_op_1d(m,deltax,n):
     """
     4th order centered difference scheme for the kinetic energy operator in 1D
@@ -124,9 +126,40 @@ def all_franck_condon(x,u,w,dipole=None):
             fc[i,j]=franck_condon(x,u[:,i],w[:,j],dipole)
     return fc
 
+#-------------------------------------------------------------------------------
+def compute_1d_fc(mu,x,V_g,V_c,V_f,nc,nf,dipole=None):
+    """
+    computes the 1d FC factors between the gs-ce and ce-gs
+
+    mu       : mass in a.u.
+    x        : coordinate space vector 
+    V_g      : PES for state |g>
+    V_c      : PES for state |c>
+    V_f      : PES for state |f>
+    omega_gc : energy difference between the minimum of the |g> and |c> PES (in a.u.)
+    omega_gf : energy difference between the minimum of the |g> and |f> PES (in a.u.)
+    Gamma    : lifetime broadening of state |c> (in a.u.)
+optional:
+    omega    : desired incoming photon energies (in a.u.)
+    nc       : desired number of vibrational levels considereg for |c>
+    """
+
+    omega_gc=V_c.min() - V_g.min()
+    omega_gf=V_f.min() - V_g.min()
+
+    deltax=(x[1] - x[0])
+    eg,psi_g=hamiltonian_diag_1d(mu,V_g - V_g.min(),deltax)
+    ec,psi_c=hamiltonian_diag_1d(mu,V_c - V_c.min(),deltax)
+    ef,psi_f=hamiltonian_diag_1d(mu,V_f - V_f.min(),deltax)
+    fc_gc=all_franck_condon(x,psi_g[:,0:3],psi_c[:,0:nc])
+    fc_fc=all_franck_condon(x,psi_c[:,0:nc],psi_f[:,0:nf],dipole)
+
+    return fc_gc[0,:],fc_fc[:,:],eg[0],ec[0:nc],ef[0:nf]
+
 #--------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------
+
 
 def gen_indexes(nmodes,fc_nv):
     nt=1
@@ -143,18 +176,175 @@ def gen_indexes(nmodes,fc_nv):
         exit()
     return indexes
 
-def multd_fc(e_M,fc_M,fc_nv,fc_indx):
+#----------------------------------------------------
+def multd_0vc_fc(e_M,fc_M,nmodes,fc_indx_vc):
     fc=1e0
     e=0e0
-    for i in range(fc_nv.shape[0]):
-        fc = fc * fc_M[i,fc_indx[i]] 
-        e = e + e_M[i,fc_indx[i]] 
+    #print(fc_indx_vc)
+    for i in range(nmodes):
+        fc = fc * fc_M[i,fc_indx_vc[i]] 
+        #print(fc_M[i,fc_indx_vc[i]])
+        e = e + e_M[i,fc_indx_vc[i]] 
     return fc,e
 
-def do_all_fc(e_M,fc_M,fc_nv,all_indx):
-    nt=len(all_indx)
-    FC=np.zeros(nt,dtype=float)
-    E=np.zeros(nt,dtype=float)
-    for i in range(nt):
-         FC[i],E[i]=multd_fc(e_M,fc_M,fc_nv,all_indx[i])
-    return FC,E
+#----------------------------------------------------
+def multd_vcvf_fc(e_M,fc_M,nmodes,fc_indx_vc,fc_indx_vf):
+    fc=1e0
+    e=0e0
+    #print(fc_indx_vc,fc_indx_vf)
+    for i in range(nmodes):
+#        for j in range(nmodes):
+        fc = fc * fc_M[i,fc_indx_vc[i],fc_indx_vf[i]] 
+        #print(fc_M[i,fc_indx_vc[i],fc_indx_vf[j]],fc_indx_vc[i],fc_indx_vf[j])
+        e = e + e_M[i,fc_indx_vf[i]]
+    return fc,e
+
+#----------------------------------------------------
+def read_all_pot(nmodes, fc_init_pot,fc_decay_pot,fc_fin_pot):
+    R={};Vg={};Vd={};Vf={}
+    for i in range(nmodes):
+        R[i],Vg[i]=np.genfromtxt(fc_init_pot[i],skip_header=1,unpack=True,dtype=float)
+        R[i],Vd[i]=np.genfromtxt(fc_decay_pot[i],skip_header=1,unpack=True,dtype=float)
+        R[i],Vf[i]=np.genfromtxt(fc_fin_pot[i],skip_header=1,unpack=True,dtype=float)
+    return R,Vg,Vd,Vf
+
+#----------------------------------------------------
+def plot_all_pot(nmodes,R,Vg,Vd,Vf):
+    f,ax=plt.subplots(3,nmodes)
+    for i in range(nmodes):
+        ax[2,i].plot(R[i],Vg[i])
+        ax[1,i].plot(R[i],Vd[i])
+        ax[0,i].plot(R[i],Vf[i])
+    plt.show()
+    return
+
+#------------------------------------------------------
+def print_1d_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf):
+    for i in range(nmodes):
+        print('mode',i,',',fc_nvc[i],fc_nvf[i]);
+        print('FC ampl., gs -> ce');
+        for j in range(fc_nvc[i]):
+            print('0 ->'+str(j),',',fc_0vc[i,j])
+
+        print('FC ampl., ce -> f')
+        for j in range(fc_nvc[i]):
+            for k in range(fc_nvf[i]):
+                print(str(j)+'->'+str(k),',',fc_vcvf[i,j,k])
+        print()
+    return
+
+#------------------------------------------------------
+# This prints the FC amplitudes in Spec format
+#
+def print_multd_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf,e_g,e_c,e_f,all_indx_vc,all_indx_vf):
+    f_out_0vc=open('fc_0vc.out','w')
+    print('dirty compatibility fix file',file=f_out_0vc)
+    print("Spectrum:",file=f_out_0vc)
+    print(" =========",file=f_out_0vc)
+    print("     *E/a.u.*        *AMPT*           *FC*              *I->F*",file=f_out_0vc)
+
+    f_out_vcvf=open('fc_vcvf.out','w')
+    print('dirty compatibility fix file',file=f_out_vcvf)
+    print("Spectrum:",file=f_out_vcvf)
+    print(" =========",file=f_out_vcvf)
+    print("     *E/a.u.*        *AMPT*           *FC*              *I->F*",file=f_out_vcvf)
+
+    print('--------------------------------------')
+    print(' 0  -> vc,       evc,          fc_amp')
+    for index in all_indx_vc:
+        fc_t,e_t=multd_0vc_fc(e_c,fc_0vc,nmodes,index)
+        label=''.join(str(0) for a in index)+' -> '+''.join(str(a) for a in index)
+        print('{}    {: 8.6f}      {: 8.6f}'.format(label,e_t,fc_t))
+        print('    {: 8.6f}      {: 8.6f}      {: 8.6f}      {}'.format(e_t,fc_t,fc_t*fc_t,label),file=f_out_0vc)
+
+    print('--------------------------------------')
+    print(' vc  -> vf,      evf,          fc_amp')
+    for index_vc in all_indx_vc:
+        for index_vf in all_indx_vf:
+            fc_t,e_t=multd_vcvf_fc(e_f,fc_vcvf,nmodes,index_vc,index_vf)
+            label=''.join(str(b) for b in index_vc)+' -> '+''.join(str(a) for a in index_vf)
+            print('{}    {: 8.6f}      {: 8.6f}'.format(label,e_t,fc_t))
+            print('    {: 8.6f}      {: 8.6f}      {: 8.6f}      {}'.format(e_t,fc_t,fc_t*fc_t,label),file=f_out_vcvf)
+
+    print('\n The eSPec program finished successfully!',file=f_out_0vc)
+    print('\n The eSPec program finished successfully!',file=f_out_vcvf)
+    return
+
+#------------------------------------------------------
+def print_1d_eigval(nmodes,fc_nvc,fc_nvf,e_g,e_c,e_f):
+    for i in range(nmodes):
+        print('mode',i,',',fc_nvc[i],fc_nvf[i]);
+        print('eigenvalues ');
+        print('e0 =',e_g[i],'\n')
+        print('evc')
+        for j in range(fc_nvc[i]):
+            print(str(j),' | ',e_c[i,j])
+        print()
+        print('evf')
+        for k in range(fc_nvf[i]):
+            print(str(k),' | ',e_f[i,k])
+        print()
+    return
+
+#----------------------------------------------------
+def get_multd_fc(nmodes,inp_file):
+    mass=np.zeros(nmodes,dtype=float)
+    fc_nvc=np.zeros(nmodes,dtype=int)
+    fc_nvf=np.zeros(nmodes,dtype=int)
+    fc_init_pot=[]
+    fc_decay_pot=[]
+    fc_fin_pot=[]
+
+    f_inp=open(inp_file,'r')
+    for line in f_inp:
+        if 'fc_mass' in line:
+            for i in range(nmodes):
+                mass[i]=np.float(line.split()[i+1])
+        elif 'fc_nvc' in line:
+            for i in range(nmodes):
+                fc_nvc[i]=np.float(line.split()[i+1])
+        elif 'fc_nvf' in line:
+            for i in range(nmodes):
+                fc_nvf[i]=np.float(line.split()[i+1])
+        elif 'fc_init_pot' in line:
+            for i in range(nmodes):
+                fc_init_pot.append(line.split()[i+1])
+        elif 'fc_decay_pot' in line:
+            for i in range(nmodes):
+                fc_decay_pot.append(line.split()[i+1])
+        elif 'fc_fin_pot' in line:
+            for i in range(nmodes):
+                fc_fin_pot.append(line.split()[i+1])
+    # print(mass);print(fc_nvc);print(fc_nvf);print(fc_init_pot);print(fc_decay_pot);print(fc_fin_pot)
+
+    # Here we read the potentials from the files
+    R,V_g,V_c,V_f=read_all_pot(nmodes, fc_init_pot,fc_decay_pot,fc_fin_pot)
+    #plot_all_pot(nmodes,R,V_g,V_c,V_f)
+
+    # Here we generate the indexes for all
+    #possible combinations of 1D vibrational levels
+    all_indx_vc=gen_indexes(nmodes,fc_nvc)
+    all_indx_vf=gen_indexes(nmodes,fc_nvf)
+    
+    # Here compute 1D FC for all modes--------------------------------------------------------------------------
+    fc_0vc=np.zeros((nmodes,fc_nvc.max()),dtype=float)
+    fc_vcvf=np.zeros((nmodes,fc_nvc.max(),fc_nvf.max()),dtype=float)
+    e_g=np.zeros(nmodes,dtype=float)
+    e_c=np.zeros((nmodes,fc_nvc.max()),dtype=float)
+    e_f=np.zeros((nmodes,fc_nvf.max()),dtype=float)
+    for i in range(nmodes):
+        fc_0vc[i,0:fc_nvc[i]],fc_vcvf[i,0:fc_nvc[i],0:fc_nvf[i]],e_g[i],e_c[i,0:fc_nvc[i]],e_f[i,0:fc_nvf[i]]=\
+        compute_1d_fc(mass[i],R[i],V_g[i],V_c[i],V_f[i],fc_nvc[i],fc_nvf[i])
+    #------------------------------------------------------------------------------------------------------------
+    
+    # print computed 1d fc amplitudes
+    print_1d_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf)
+    print_1d_eigval(nmodes,fc_nvc,fc_nvf,e_g,e_c,e_f)
+
+    # This functions computes all necessary multimode amplitudes FC amplitudes
+    # and prints them into eSPec-like files for later use in the eSPec-Raman script
+    print_multd_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf,e_g,e_c,e_f,all_indx_vc,all_indx_vf)
+
+    #do_all_multd_fc(e_M,fc_M,fc_nv,all_indx)
+    return
+#-----------------------------------------------------------------------------------------------------------------

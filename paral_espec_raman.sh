@@ -92,10 +92,12 @@ ulimit -s unlimited
 input=$2
 # model used in the calculation
 model=`grep -i model $input | awk '{printf $2}'`
-if [ -z "$model" ] || [ "$model" == "2d+1d" ] || [ "$model" == "1d+1d" ] || [ "$model" == "nd+1d" ] || [ "$model" == "1d+2d" ] || [ "$model" == "1d+3d" ] || [ "$model" == "1d+md" ]; then
+if [ -z "$model" ] || [ "$model" == "2d+1d" ] || [ "$model" == "1d+1d" ] || [ "$model" == "nd+1d" ]; then
     tpmodel=0
 elif [ "$model" == "2d" ] || [ "$model" == "1d" ] || [ "$model" == "nd" ] || [ "$model" == "simple" ] || [ "$model" == "pure" ]; then
     tpmodel=1
+elif [ "$model" == "1d+2d" ] || [ "$model" == "1d+3d" ] || [ "$model" == "1d+md" ] || [ "$model" == "2d+md" ] || [ "$model" == "nd+md" ]; then
+    tpmodel=2
 else
     echo "error: Invalid model choice $model"
     exit
@@ -103,9 +105,11 @@ fi
 
 echo
 if [ $tpmodel -eq 0 ]; then
-    echo 'This calculations uses the general nD(TD) + mD(TI) model'
+    echo 'This calculations uses the nD(TD) + 1D(TI) model'
 elif [ $tpmodel -eq 1 ]; then
     echo 'This calculation uses the simple nD(TD) model'
+elif [ $tpmodel -eq 2 ]; then
+    echo 'This calculations uses the nD(TD) + mD(TI) model'
 fi
 echo
 
@@ -525,7 +529,7 @@ EOF
 fi
 
 #------ Multidimensional FC factors---------------------------------------------#
-if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ] && [ $tpmodel -eq 0 ] && [ "$dim_fc" != ".1D" ]; then
+if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ] && [ $tpmodel -eq 2 ] && [ "$dim_fc" != ".1D" ]; then
     echo
     echo "Multidimensional FC calculation"
     echo "-------------------------------"
@@ -552,7 +556,8 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas"
 	echo "potentials:  ${fc_init_pot[$i]}, ${fc_decay_pot[$i]}, ${fc_fin_pot[$i]}"
 	echo
     done
-    
+
+
     echo 'done!'
     echo
     echo 'Finished Franck-Condon section'
@@ -587,6 +592,8 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     elif [ $tpmodel -eq 1 ]; then 
 	nvc=1
 	nvf=1
+    elif [ $tpmodel -eq 2 ]; then 
+	echo 'needs implementing'
     fi
 
 
@@ -868,6 +875,9 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fin" ] || [ "$runtype" == "-cfi
     elif [ $tpmodel -eq 1 ]; then 
 	nvc=1
 	nvf=1
+    elif [ $tpmodel -eq 2 ]; then 
+	nvc=1
+	nvf=1
     fi
 
 
@@ -1068,6 +1078,9 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
 	nvf=`grep -i -w nvf $input | awk '{printf $2}'`
     #1d or 2D run
     elif [ $tpmodel -eq 1 ]; then 
+	nvc=1
+	nvf=1
+    elif [ $tpmodel -eq 2 ]; then 
 	nvc=1
 	nvf=1
     fi

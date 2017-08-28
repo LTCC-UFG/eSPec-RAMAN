@@ -349,7 +349,7 @@ def get_multd_fc(nmodes,inp_file):
 
     # Here we read the potentials from the files
     R,V_g,V_c,V_f=read_all_pot(nmodes, fc_init_pot,fc_decay_pot,fc_fin_pot)
-    plot_all_pot(nmodes,R,V_g,V_c,V_f)
+    #plot_all_pot(nmodes,R,V_g,V_c,V_f)
 
     # Here we generate the indexes for all
     #possible combinations of 1D vibrational levels

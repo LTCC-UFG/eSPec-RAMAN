@@ -529,7 +529,7 @@ EOF
 fi
 
 #------ Multidimensional FC factors---------------------------------------------#
-if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ] && [ $tpmodel -eq 2 ] && [ "$dim_fc" != ".1D" ]; then
+if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ] && [ $tpmodel -eq 2 ] ; then
     echo
     echo "Multidimensional FC calculation"
     echo "-------------------------------"
@@ -913,8 +913,20 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fin" ] || [ "$runtype" == "-cfi
 	nvc=1
 	nvf=1
     elif [ $tpmodel -eq 2 ]; then 
+	nmodes=$(echo $dim_fc | sed 's/[^0-9]*//g')
 	nvc=1
 	nvf=1
+	for (( i=0; i<nmodes; i++ ))
+	do
+	    # potential files
+	    cc=$(echo $i + 2 | bc)
+	    fc_nvc_wk=`grep -i -w fc_nvc $input | awk -v col=$cc '{printf $col}'`
+	    fc_nvf_wk=`grep -i -w fc_nvf $input | awk -v col=$cc '{printf $col}'`
+	    nvc=$(echo "$nvc * $fc_nvc_wk" | bc)
+	    nvf=$(echo "$nvf * $fc_nvf_wk" | bc)
+	done    
+	echo '(FC) total number of intermediate vibrational states: ' $nvc
+	echo '(FC) total number of final vibrational states: ' $nvf
     fi
 
 
@@ -1118,8 +1130,20 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
 	nvc=1
 	nvf=1
     elif [ $tpmodel -eq 2 ]; then 
+	nmodes=$(echo $dim_fc | sed 's/[^0-9]*//g')
 	nvc=1
 	nvf=1
+	for (( i=0; i<nmodes; i++ ))
+	do
+	    # potential files
+	    cc=$(echo $i + 2 | bc)
+	    fc_nvc_wk=`grep -i -w fc_nvc $input | awk -v col=$cc '{printf $col}'`
+	    fc_nvf_wk=`grep -i -w fc_nvf $input | awk -v col=$cc '{printf $col}'`
+	    nvc=$(echo "$nvc * $fc_nvc_wk" | bc)
+	    nvf=$(echo "$nvf * $fc_nvf_wk" | bc)
+	done    
+	echo '(FC) total number of intermediate vibrational states: ' $nvc
+	echo '(FC) total number of final vibrational states: ' $nvf
     fi
 
     work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
@@ -1134,7 +1158,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
 
     for ((i=0 ; i < $nvf ; i++)); do
 	#2d+1d like run
-	if [ $tpmodel -eq 0 ]; then 
+	if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ] ; then 
 	    Evf=`sed -n "/from final state/,/Spectrum/p" fc_vcvf.out | grep "|     $i        |" | awk '{printf $4}'`
 	    echo $Evf >> Evf.dat
 	#1d or 2D run
@@ -1147,7 +1171,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
     Evf=`cat Evf.dat | awk '{printf $1" "}'`
     rm Evf.dat
 
-    if [ $tpmodel -eq 0 ]; then 
+    if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then 
 	echo "Final bending energies " $Evf
     fi
 
@@ -1168,7 +1192,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
 	shift=$(awk "BEGIN {print $Vgf_gap + $E0tot }")
 	#------------------------------------
 	#2d+1d like run
-	if [ $tpmodel -eq 0 ]; then 
+	if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then 
 	    cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat
 	    cat  fc_vcvf.dat | awk '{printf $1" \n"}' >> fcond.dat
 	    cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat

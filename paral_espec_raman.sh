@@ -25,6 +25,11 @@ espec=%especpath%
 raman=%ramanpath%
 #fcorrel path
 fcorrel=%fcorrelpath%
+#python functions path
+pyfunc=%pythonpath%
+# python interpreter
+python_v=%pyversion%
+
 
 #----------- Script modes ---------------#
 runtype=$1
@@ -74,6 +79,8 @@ if [ "$runtype" == "-clean" ]; then
     rm xas-fcorrel.dat
     rm input.spc initial_spc.aux
     rm *.spec raman.inp
+    rm -r __pycache__/
+    rm function.py
     exit
 fi
 
@@ -87,6 +94,10 @@ date
 echo
 
 ulimit -s unlimited
+
+# set up python
+#%triolithpython%
+ln -s $pyfunc .
 
 #-----------General input parameters---------------#
 input=$2
@@ -565,7 +576,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas"
    echo
 
     echo 'computing Franck-Condon amplitudes'
-    python -c "import functions as f; f.get_multd_fc($nmodes,'$input',$fc_thsh)"
+    $python_v -c "import functions as f; f.get_multd_fc($nmodes,'$input',$fc_thsh)"
 
     cat evc_temp > fc_0vc.out
     cat fc_0vc_temp >> fc_0vc.out

@@ -572,6 +572,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas"
 
     cat evc_temp > fc_0vc.out
     cat fc_0vc_temp >> fc_0vc.out
+    rm fc_0vc_temp fc_vcvf_temp
 
     sed -n "/Spectrum/,/The/p" fc_0vc.out | sed "/Spec/ d" | sed "/==/ d" | sed "/*/ d" | sed "/The/ d" | awk '{printf $2"\t"$4" "$5" "$6"\n"}' > fc_0vc.dat
 
@@ -1316,7 +1317,7 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
 	rm Evc.dat
     fi
 
-    for ((i=0 ; i < $nvf ; i++)); do
+    for ((i=0 ; i < $nvc ; i++)); do
 	
 	#2d+1d like run
 	if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then

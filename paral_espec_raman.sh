@@ -228,14 +228,6 @@ else
 fi
 
 
-#shift_spectrum
-doshift=`grep -i -w shift $input | awk '{printf $1}'`
-if [ -z "$doshift" ]; then
-    doshift="n"
-else
-    doshift="y"
-fi
-
 #print level
 print_level=`grep -i -w print_level $input | awk '{printf $2}'`
 if [ -z "$print_level" ]; then
@@ -1259,23 +1251,6 @@ EOF
 
 	echo "# spectrum as function of energy loss E - E', omega= $omega " > ${jobid}_${detun}_Eloss.spec
 	sed -n "/> RIXS spectrum as function of energy loss/,/# End of Calculation/p" ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/RIXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_${detun}_Eloss.spec
-
-	# if [ "$doshift"=="y" ]; then
-	#     echo "shifting spectrum, omega=$omega eV"
-	#     shift=`awk "BEGIN {print $omega -$Vgf_gap + $bE0}"`
-	#     while read x y discard; do
-	# 	w=$(awk "BEGIN {print $shift - $x}")
-	# 	Int=$(awk "BEGIN {print $y}")
-	# 	#Int=$(awk "BEGIN {print $norm * $y}")
-	# 	echo "$w $Int" >> ${jobid}_$detun.spec
-	#     done < temp
-	#     #cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec
-	#     #cat temp | awk "BEGIN {printf $shift - $1}" >> ${jobid}_$detun.spec
-	# else
-	#     cat temp | awk '{printf $1" "$2"\n"}' > ${jobid}_$detun.spec   
-	# fi
-	
-	#rm temp
 
 	echo
 	echo "Final spectrum saved to ${jobid}_$detun.spec and ${jobid}_${detun}_Eloss.spec"

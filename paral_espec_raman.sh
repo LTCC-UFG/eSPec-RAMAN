@@ -1316,6 +1316,23 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
     elif [ $tpmodel -eq 1 ]; then 	
 	nvc='1'
 	nvf='1'
+    elif [ $tpmodel -eq 2 ]; then 
+	nmodes=$(echo $dim_fc | sed 's/[^0-9]*//g')
+	nvc=1
+	nvf=1
+	for (( i=0; i<nmodes; i++ ))
+	do
+	    # potential files
+	    cc=$(echo $i + 2 | bc)
+	    fc_nvc_wk=`grep -i -w fc_nvc $input | awk -v col=$cc '{printf $col}'`
+	    fc_nvf_wk=`grep -i -w fc_nvf $input | awk -v col=$cc '{printf $col}'`
+	    nvc=$(echo "$nvc * $fc_nvc_wk" | bc)
+	    nvf=$(echo "$nvf * $fc_nvf_wk" | bc)
+	done  
+	nvc_negl=`grep -i -w neglected fc_0vc.out | awk '{printf $2}'`
+	nvc=$(echo "$nvc - $nvc_negl" | bc)
+	echo '(FC) total number of intermediate vibrational states: ' $nvc
+	echo '(FC) total number of final vibrational states: ' $nvf
     fi
     
     corr_np=`cat -n xas-fcorrel.dat | tail -1 | awk '{printf $1}'`
@@ -1327,7 +1344,7 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
     for ((i=0 ; i < $nvf ; i++)); do
 	
 	#2d+1d like run
-	if [ $tpmodel -eq 0 ]; then
+	if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then
 	    Evc=`sed -n "/from final state/,/Spectrum/p" fc_0vc.out | grep "|     $i        |" | awk '{printf $4}'`
 	    echo $Evc >> Evc.dat
 	#1d or 2D run
@@ -1341,7 +1358,7 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
     Evc=`cat Evc.dat | awk '{printf $1" "}'`
     rm Evc.dat
 
-    if [ $tpmodel -eq 0 ]; then
+    if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ] ; then
 	echo "Core-excited bending energies " $Evc "(a.u.)"
     fi
 
@@ -1391,7 +1408,7 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
     fi
     #------- bending |0> energy
     #2d+1d like run
-    if [ $tpmodel -eq 0 ]; then 
+    if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then 
 
 	bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
 	echo
@@ -1435,7 +1452,7 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
 
     
     #2d+1d like run
-    if [ $tpmodel -eq 0 ]; then 
+    if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then 
 	cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat #FOR XAS WE ONLY NEED GROUND->CORE FC FACTORS
     #1d or 2D run
     elif [ $tpmodel -eq 1 ]; then 

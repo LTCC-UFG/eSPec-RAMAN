@@ -219,7 +219,7 @@ def plot_all_pot(nmodes,R,Vg,Vd,Vf):
     return
 
 #------------------------------------------------------
-def print_1d_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf):
+def print_1d_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf,thsh):
     for i in range(nmodes):
         print('mode',i,',',fc_nvc[i],fc_nvf[i]);
         print('FC ampl., gs -> ce');
@@ -236,7 +236,7 @@ def print_1d_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf):
 #------------------------------------------------------
 # This prints the FC amplitudes in Spec format
 #
-def print_multd_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf,e_g,e_c,e_f,all_indx_vc,all_indx_vf):
+def print_multd_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf,e_g,e_c,e_f,all_indx_vc,all_indx_vf,thsh):
     f_out_0vc=open('fc_0vc_temp','w')
     f_out_vcvf=open('fc_vcvf_temp','w')
     f_evc=open('evc_temp','w')
@@ -272,33 +272,44 @@ def print_multd_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf,e_g,e_c,e_f,all_indx_vc,a
 
     print('--------------------------------------')
     print(' 0  -> vc,       evc,          fc_amp')
-    vc=0
+    vc=0;vc_negl=0;
     for index in all_indx_vc:
         fc_t,e_t=multd_0vc_fc(e_c,fc_0vc,nmodes,index)
-        label=''.join(str(0) for a in index)+' -> '+''.join(str(a) for a in index)
-        print('{}    {: 8.6E}      {: 8.6E}'.format(label,e_t,fc_t))
-        print('    {: 8.6E}      {: 8.6E}      {: 8.6E}           {}'.format(e_t,fc_t,fc_t*fc_t,label),file=f_out_0vc)
-        print('|     {}        |     {: 8.6E}    |'.format(vc,e_t),file=f_evc)
-        print('------------------------------------',file=f_evc)
-        vc=vc+1
+        if ( np.fabs(fc_t) >= thsh ):
+            label=''.join(str(0) for a in index)+' -> '+''.join(str(a) for a in index)
+            print('{}    {: 8.6E}      {: 8.6E}'.format(label,e_t,fc_t))
+            print('    {: 8.6E}      {: 8.6E}      {: 8.6E}           {}'.format(e_t,fc_t,fc_t*fc_t,label),file=f_out_0vc)
+            print('|     {}        |     {: 8.6E}    |'.format(vc,e_t),file=f_evc)
+            print('------------------------------------',file=f_evc)
+            vc=vc+1
+        else:
+            vc_negl=vc_negl+1
+    # total number of states included
+    vc_tot=vc
 
     print('--------------------------------------')
     print(' vc  -> vf,      evf,          fc_amp')
     vc=0;vf=0;
     for index_vc in all_indx_vc:
-        for index_vf in all_indx_vf:
-            fc_t,e_t=multd_vcvf_fc(e_f,fc_vcvf,nmodes,index_vc,index_vf)
-            label=''.join(str(b) for b in index_vc)+' -> '+''.join(str(a) for a in index_vf)
-            print('{}    {: 8.6E}      {: 8.6E}'.format(label,e_t,fc_t))
-            print('    {: 8.6E}      {: 8.6E}      {: 8.6E}         {}'.format(e_t,fc_t,fc_t*fc_t,label),file=f_out_vcvf)
-            if(vc==0):
-                print('|     {}        |  {: 8.6E}      |'.format(vf,e_t),file=f_evf)
-                print('------------------------------------',file=f_evf)
-            vf=vf+1
-        vc=vc+1
+        fc_check,e_check=multd_0vc_fc(e_c,fc_0vc,nmodes,index_vc)
+        if ( np.fabs(fc_check) >= thsh ):
+            for index_vf in all_indx_vf:
+                fc_t,e_t=multd_vcvf_fc(e_f,fc_vcvf,nmodes,index_vc,index_vf)
+                label=''.join(str(b) for b in index_vc)+' -> '+''.join(str(a) for a in index_vf)
+                print('{}    {: 8.6E}      {: 8.6E}'.format(label,e_t,fc_t))
+                print('    {: 8.6E}      {: 8.6E}      {: 8.6E}         {}'.format(e_t,fc_t,fc_t*fc_t,label),file=f_out_vcvf)
+                if(vc==0):
+                    print('|     {}        |  {: 8.6E}      |'.format(vf,e_t),file=f_evf)
+                    print('------------------------------------',file=f_evf)
+                    vf=vf+1
+            vc=vc+1
+
+    print(vc_negl," states were found with fc amp below the threshold",thsh)
+    print(vc_tot," states remain")
     print('\n The eSPec program finished successfully!',file=f_out_0vc)
     print('\n The eSPec program finished successfully!',file=f_out_vcvf)
-    return
+    print("\n\nneglected: ",vc_negl,"\n",file=f_out_0vc)
+    return vc_negl
 
 #------------------------------------------------------
 def print_1d_eigval(nmodes,fc_nvc,fc_nvf,e_g,e_c,e_f):
@@ -317,7 +328,7 @@ def print_1d_eigval(nmodes,fc_nvc,fc_nvf,e_g,e_c,e_f):
     return
 
 #----------------------------------------------------
-def get_multd_fc(nmodes,inp_file):
+def get_multd_fc(nmodes,inp_file,thsh=1e-8):
     mass=np.zeros(nmodes,dtype=float)
     fc_nvc=np.zeros(nmodes,dtype=int)
     fc_nvf=np.zeros(nmodes,dtype=int)
@@ -368,12 +379,12 @@ def get_multd_fc(nmodes,inp_file):
     #------------------------------------------------------------------------------------------------------------
     
     # print computed 1d fc amplitudes
-    print_1d_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf)
+    print_1d_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf,thsh)
     print_1d_eigval(nmodes,fc_nvc,fc_nvf,e_g,e_c,e_f)
 
     # This functions computes all necessary multimode amplitudes FC amplitudes
     # and prints them into eSPec-like files for later use in the eSPec-Raman script
-    print_multd_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf,e_g,e_c,e_f,all_indx_vc,all_indx_vf)
+    vc_negl=print_multd_fc(nmodes,fc_nvc,fc_nvf,fc_0vc,fc_vcvf,e_g,e_c,e_f,all_indx_vc,all_indx_vf,thsh)
 
     #do_all_multd_fc(e_M,fc_M,fc_nv,all_indx)
     return

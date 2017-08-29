@@ -378,7 +378,7 @@ EOF
 fi
 
 #---------------SPECIAL CASE: 1D Franck-Condon--------------#
-if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ] && [ $tpmodel -eq 0 ] && [ "$dim_fc" == ".1D" ]; then
+if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ] && [ $tpmodel -eq 0 ]; then
 
     # potential files
     bendinit_pot=`grep -i -w bend_init_pot $input | awk '{printf $2}'`
@@ -556,9 +556,16 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas"
 	echo
     done
 
+   fc_thsh=`grep -i -w fc_thsh $input | awk '{printf $2}'` 
+   if [ -z $fc_thsh ]; then
+       fc_thsh='1.0e-8'
+   fi
+
+   echo "FC amplitude threshold: $fc_thsh"
+   echo
 
     echo 'computing Franck-Condon amplitudes'
-    python -c "import functions as f; f.get_multd_fc($nmodes,'$input')"
+    python -c "import functions as f; f.get_multd_fc($nmodes,'$input',$fc_thsh)"
 
     cat evc_temp > fc_0vc.out
     cat fc_0vc_temp >> fc_0vc.out
@@ -618,6 +625,8 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
 	    nvc=$(echo "$nvc * $fc_nvc_wk" | bc)
 	    nvf=$(echo "$nvf * $fc_nvf_wk" | bc)
 	done    
+	nvc_negl=`grep -i -w neglected fc_0vc.out | awk '{printf $2}'`
+	nvc=$(echo "$nvc - $nvc_negl" | bc)
 	echo '(FC) total number of intermediate vibrational states: ' $nvc
 	echo '(FC) total number of final vibrational states: ' $nvf
     fi
@@ -925,6 +934,8 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fin" ] || [ "$runtype" == "-cfi
 	    nvc=$(echo "$nvc * $fc_nvc_wk" | bc)
 	    nvf=$(echo "$nvf * $fc_nvf_wk" | bc)
 	done    
+	nvc_negl=`grep -i -w neglected fc_0vc.out | awk '{printf $2}'`
+	nvc=$(echo "$nvc - $nvc_negl" | bc)
 	echo '(FC) total number of intermediate vibrational states: ' $nvc
 	echo '(FC) total number of final vibrational states: ' $nvf
     fi
@@ -1141,7 +1152,9 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
 	    fc_nvf_wk=`grep -i -w fc_nvf $input | awk -v col=$cc '{printf $col}'`
 	    nvc=$(echo "$nvc * $fc_nvc_wk" | bc)
 	    nvf=$(echo "$nvf * $fc_nvf_wk" | bc)
-	done    
+	done  
+	nvc_negl=`grep -i -w neglected fc_0vc.out | awk '{printf $2}'`
+	nvc=$(echo "$nvc - $nvc_negl" | bc)
 	echo '(FC) total number of intermediate vibrational states: ' $nvc
 	echo '(FC) total number of final vibrational states: ' $nvf
     fi

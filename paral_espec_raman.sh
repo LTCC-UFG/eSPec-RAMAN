@@ -572,7 +572,6 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas"
 
     cat evc_temp > fc_0vc.out
     cat fc_0vc_temp >> fc_0vc.out
-    rm fc_0vc_temp fc_vcvf_temp
 
     sed -n "/Spectrum/,/The/p" fc_0vc.out | sed "/Spec/ d" | sed "/==/ d" | sed "/*/ d" | sed "/The/ d" | awk '{printf $2"\t"$4" "$5" "$6"\n"}' > fc_0vc.dat
 
@@ -581,6 +580,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas"
 
     sed -n "/Spectrum/,/The/p" fc_vcvf.out | sed "/Spec/ d" | sed "/==/ d" | sed "/*/ d" | sed "/The/ d" | awk '{printf $2"\t"$4" "$5" "$6"\n"}' > fc_vcvf.dat
 
+    rm fc_0vc_temp fc_vcvf_temp
 
     echo 'done!'
     echo

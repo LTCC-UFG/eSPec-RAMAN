@@ -3,11 +3,11 @@
 #include<math.h>
 #include<string.h>
 
-int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype,char *jobnam, int *nfunc, char *funam,int *nvc,int *nvf,double *Evf,double *Evc,char *fcnam, char *fcornam,double *Delta,double *shift, char *rexfnam, char *xasfnam, int *nxas, int *nrexs, double *omega){
+int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype,char *jobnam, int *nfunc, char *funam,int *nvc,int *nvf,double **Evf,double **Evc,char *fcnam, char *fcornam,double *Delta,double *shift, char *rexfnam, char *xasfnam, int *nxas, int *nrexs, double *omega){
   int i,j,k,spl;
   int NXG,NYG,jcheck1,jcheck2;
   char workk[50],coment[150],typenam[20];
-
+  double e;
   k = 0;
 
   //rdinput
@@ -86,11 +86,17 @@ int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, doubl
 
 	if(strncasecmp(workk,"vf",2)==0)fscanf(arq, "%d",nvf);
 	if(strncasecmp(workk,"Evf",3)==0){
-	  for(i=0;i<*nvf;i++)fscanf(arq, "%lf",&Evf[i]);
+	  *Evf=malloc(sizeof(double));Evf[0]=malloc((*nvf) * sizeof(double));
+	  for(i=0;i<*nvf;i++){
+	    fscanf(arq, "%lf",&Evf[0][i]);
+	  }
 	}
 	if(strncasecmp(workk,"vc",2)==0)fscanf(arq, "%d",nvc);
 	if(strncasecmp(workk,"Evc",3)==0){
-	  for(i=0;i<*nvc;i++)fscanf(arq, "%lf",&Evc[i]);
+	  *Evc=malloc(sizeof(double));Evc[0]=malloc((*nvc) * sizeof(double));
+	  for(i=0;i<*nvc;i++){
+	    fscanf(arq, "%lf",&Evc[0][i]);
+	  }
 	}
 	if(strncasecmp(workk,"franckcondon",12)==0)fscanf(arq, "%s",fcnam);
 	if(strncasecmp(workk,"fcorrel",7)==0)fscanf(arq, "%s",fcornam);

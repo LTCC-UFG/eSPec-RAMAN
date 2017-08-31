@@ -42,7 +42,7 @@ int main(){
   double norm,t,s;
   double ti,tf,pti,ptf,pstept,xi,xf,yi,yf,stept,sh[3],width,potshift,stepw,stepz,Delta;
   double *X,*Y,*T,rmse,xwork,*W,*Z,mem,Ereso,*FCGVc,**FCVcVf,*intens;
-  double m[3],x,y,pk,pki,pkf,steppk,ansk,val[5],FC,Evf[20],Evc[20];
+  double m[3],x,y,pk,pki,pkf,steppk,ansk,val[5],FC,*Evf,*Evc;
   char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10],fnam[20],fnam2[20],funam[20],jobnam[50];
   char fcnam[20],fcornam[20];
   FILE *arq=fopen("correl.inp","r");
@@ -97,7 +97,7 @@ int main(){
   printf("Reading input parameters...\n\n");
 
   //--- Read Input File
-  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&nEf,Ef,&type,&crosst,windtype,jobnam,&nfunc,funam,&nvc,&nvf,Evf,Evc,fcnam,fcornam,&Delta,&shift,rexfnam,xasfnam,&nxas,&nrexs,&omega);
+  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&nEf,Ef,&type,&crosst,windtype,jobnam,&nfunc,funam,&nvc,&nvf,&Evf,&Evc,fcnam,fcornam,&Delta,&shift,rexfnam,xasfnam,&nxas,&nrexs,&omega);
   fclose(arq);
   //-----
 

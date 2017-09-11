@@ -1206,7 +1206,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
 	detunau=$(awk "BEGIN {print $detun / 27.2114}")
 
 	omega=$(awk "BEGIN {print $omres + $detunau}")
-	shift=$(awk "BEGIN {print $Vgf_gap + $E0tot }")
+	shift=$(awk "BEGIN {print -$Vgf_gap + $E0tot }")
 	#------------------------------------
 	#2d+1d like run
 	if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then 
@@ -1532,7 +1532,7 @@ if [ "$runtype" == "-self" ]; then
 	detunau=$(awk "BEGIN {print $detun / 27.2114}")
 
 	omega=$(awk "BEGIN {print $omres + $detunau}")
-	shift=$(awk "BEGIN {print $Vgf_gap + $E0tot }")
+	shift=$(awk "BEGIN {print -$Vgf_gap + $E0tot }")
 	#------------------------------------
 
 	if [ -f ${jobid}_$detun.spec ]; then

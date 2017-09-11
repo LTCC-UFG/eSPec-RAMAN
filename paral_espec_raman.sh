@@ -25,6 +25,11 @@ espec=%especpath%
 raman=%ramanpath%
 #fcorrel path
 fcorrel=%fcorrelpath%
+#python functions path
+pyfunc=%pythonpath%
+# python interpreter
+python_v=%pyversion%
+
 
 #----------- Script modes ---------------#
 runtype=$1
@@ -74,10 +79,25 @@ if [ "$runtype" == "-clean" ]; then
     rm xas-fcorrel.dat
     rm input.spc initial_spc.aux
     rm *.spec raman.inp
+    rm -r __pycache__/
+    rm function.py
     exit
 fi
 
+echo "-----------------"
+echo "eSPec-Raman script"
+echo "------------------"
 
+echo
+echo "job running on" `hostname`
+date
+echo
+
+ulimit -s unlimited
+
+# set up python
+#%triolithpython%
+ln -s $pyfunc .
 
 #-----------General input parameters---------------#
 input=$2
@@ -87,12 +107,27 @@ if [ -z "$model" ] || [ "$model" == "2d+1d" ] || [ "$model" == "1d+1d" ] || [ "$
     tpmodel=0
 elif [ "$model" == "2d" ] || [ "$model" == "1d" ] || [ "$model" == "nd" ] || [ "$model" == "simple" ] || [ "$model" == "pure" ]; then
     tpmodel=1
+elif [ "$model" == "1d+2d" ] || [ "$model" == "1d+3d" ] || [ "$model" == "1d+md" ] || [ "$model" == "2d+md" ] || [ "$model" == "nd+md" ]; then
+    tpmodel=2
+else
+    echo "error: Invalid model choice $model"
+    exit
 fi
+
+echo
+if [ $tpmodel -eq 0 ]; then
+    echo 'This calculations uses the nD(TD) + 1D(TI) model'
+elif [ $tpmodel -eq 1 ]; then
+    echo 'This calculation uses the simple nD(TD) model'
+elif [ $tpmodel -eq 2 ]; then
+    echo 'This calculations uses the nD(TD) + mD(TI) model'
+fi
+echo
 
 # short name to be the base file name for input, output and result files
 jobid=`grep -i jobid $input | awk '{printf $2}'`
 # dimension .1D .2D .2DCT
-dim=`grep -i dimens $input | awk '{printf $2}'`
+dim=`grep -i -w dimension $input | awk '{printf $2}'`
 # if .2DCT is inputed, then we need the value of the cross term cos(\theta)
 if [ "$dim" == ".2DCT" ]; then
     cross=`grep -i -w cross_term $input | awk '{printf $2}'`
@@ -103,6 +138,16 @@ if [ "$dim" == ".2DCT" ]; then
 	exit 666
     fi
 fi
+
+# number of independent modes to be included in the FC factor calculations
+dim_fc=`grep -i fc_dimens $input | awk '{printf $2}'`
+if [ -z "$dim_fc" ]; then
+    echo "default single mode FC factors."
+    dim_fc='.1D'
+else
+    echo "$dim_fc independent modes will be included in the FC factors."
+fi
+
 # number of discretization points used. for .2D use npoints="n1 n2"
 work=`grep -i -w npoints $input | awk '{printf $1}'`
 npoints=`grep -i -w npoints $input | sed "s/\<$work\>//g"`
@@ -183,14 +228,6 @@ else
 fi
 
 
-#shift_spectrum
-doshift=`grep -i -w shift $input | awk '{printf $1}'`
-if [ -z "$doshift" ]; then
-    doshift="n"
-else
-    doshift="y"
-fi
-
 #print level
 print_level=`grep -i -w print_level $input | awk '{printf $2}'`
 if [ -z "$print_level" ]; then
@@ -215,28 +252,10 @@ fi
 
 #---------------Initial Propagation---------------#
 
-echo "-----------------"
-echo "eSPec-Raman script"
-echo "------------------"
-
-echo
-echo "job running on" `hostname`
-date
-echo
-
-echo
-if [ $tpmodel -eq 0 ]; then
-    echo 'This calculations uses the general nD(TD) + 1D(TI) model'
-elif [ $tpmodel -eq 1 ]; then
-    echo 'This calculation uses the simple nD(TD) model'
-fi
-echo
-
-ulimit -s unlimited
-
 
 if [ "$runtype" == "-all" ] || [ "$runtype" == "-init" ] || [ "$runtype" == "-xas" ]; then
 
+    echo 
     echo ' Starting initial propagation'
     echo
 
@@ -322,7 +341,6 @@ $absrang
 
 **END
 EOF
-
     time $espec > ${jobid}_init.out
 
     #cp ReIm_0001.dat  st_0.dat
@@ -362,10 +380,8 @@ EOF
 
 fi
 
-
+#---------------SPECIAL CASE: 1D Franck-Condon--------------#
 if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ] && [ $tpmodel -eq 0 ]; then
-
-    #---------------Franck-Condon--------------#
 
     # potential files
     bendinit_pot=`grep -i -w bend_init_pot $input | awk '{printf $2}'`
@@ -515,6 +531,72 @@ EOF
 
 fi
 
+#------ Multidimensional FC factors---------------------------------------------#
+if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas" ] && [ $tpmodel -eq 2 ] ; then
+    echo
+    echo "Multidimensional FC calculation"
+    echo "-------------------------------"
+    echo
+    nmodes=$(echo $dim_fc | sed 's/[^0-9]*//g')
+    for (( i=0; i<nmodes; i++ ))
+    do
+	# potential files
+	cc=$(echo $i + 2 | bc)
+	fc_mass[$i]=`grep -i -w fc_mass $input | awk -v col=$cc '{printf $col}'`
+	fc_nvc[$i]=`grep -i -w fc_nvc $input | awk -v col=$cc '{printf $col}'`
+	fc_nvf[$i]=`grep -i -w fc_nvf $input | awk -v col=$cc '{printf $col}'`
+
+	fc_init_pot[$i]=`grep -i -w fc_init_pot $input | awk -v col=$cc '{printf $col}'`
+	fc_decay_pot[$i]=`grep -i -w fc_decay_pot $input | awk -v col=$cc '{printf $col}'`
+	fc_fin_pot[$i]=`grep -i -w fc_fin_pot $input | awk -v col=$cc '{printf $col}'`
+
+	echo "Mode $i "
+	echo "np : ${fc_np[$i]}"
+	echo "mass : ${fc_mass[$i]} amu"
+	echo "nvc : ${fc_nvc[$i]}"
+	echo "nvf : ${fc_nvf[$i]}"
+	echo "potentials:  ${fc_init_pot[$i]}, ${fc_decay_pot[$i]}, ${fc_fin_pot[$i]}"
+	echo
+    done
+
+   fc_thsh=`grep -i -w fc_thsh $input | awk '{printf $2}'` 
+   if [ -z $fc_thsh ]; then
+       fc_thsh='1.0e-8'
+   fi
+
+   echo "FC amplitude threshold: $fc_thsh"
+   echo
+
+    echo 'computing Franck-Condon amplitudes'
+    $python_v -c "import functions as f; f.get_multd_fc($nmodes,'$input',$fc_thsh)"
+
+    cat evc_temp > fc_0vc.out
+    cat fc_0vc_temp >> fc_0vc.out
+
+    sed -n "/Spectrum/,/The/p" fc_0vc.out | sed "/Spec/ d" | sed "/==/ d" | sed "/*/ d" | sed "/The/ d" | awk '{printf $2"\t"$4" "$5" "$6"\n"}' > fc_0vc.dat
+
+    cat evf_temp > fc_vcvf.out
+    cat fc_vcvf_temp >> fc_vcvf.out
+
+    sed -n "/Spectrum/,/The/p" fc_vcvf.out | sed "/Spec/ d" | sed "/==/ d" | sed "/*/ d" | sed "/The/ d" | awk '{printf $2"\t"$4" "$5" "$6"\n"}' > fc_vcvf.dat
+
+    rm fc_0vc_temp fc_vcvf_temp
+
+    echo 'done!'
+    echo
+    echo 'Finished Franck-Condon section'
+    echo
+    
+    if [ "$print_level" == "minimal" ]; then 
+	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
+    elif [ "$print_level" == "essential" ]; then
+	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
+    elif [ "$print_level" == "intermediate" ]; then
+	rm input.spc fc_vcvf.inp fc_0vc.inp bpot.inp initial_spc.aux
+    fi   
+fi
+
+
 if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cfin" ] ; then
     #---------------|Phi(0)> calculation--------------#
     echo 'Generating initial conditions for second propagation'
@@ -534,7 +616,25 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     elif [ $tpmodel -eq 1 ]; then 
 	nvc=1
 	nvf=1
+    elif [ $tpmodel -eq 2 ]; then 
+	nmodes=$(echo $dim_fc | sed 's/[^0-9]*//g')
+	nvc=1
+	nvf=1
+	for (( i=0; i<nmodes; i++ ))
+	do
+	    # potential files
+	    cc=$(echo $i + 2 | bc)
+	    fc_nvc_wk=`grep -i -w fc_nvc $input | awk -v col=$cc '{printf $col}'`
+	    fc_nvf_wk=`grep -i -w fc_nvf $input | awk -v col=$cc '{printf $col}'`
+	    nvc=$(echo "$nvc * $fc_nvc_wk" | bc)
+	    nvf=$(echo "$nvf * $fc_nvf_wk" | bc)
+	done    
+	nvc_negl=`grep -i -w neglected fc_0vc.out | awk '{printf $2}'`
+	nvc=$(echo "$nvc - $nvc_negl" | bc)
+	echo '(FC) total number of intermediate vibrational states: ' $nvc
+	echo '(FC) total number of final vibrational states: ' $nvf
     fi
+
 
 
     Vg_min=`grep -i Vg_min $input | awk '{printf $2}'`
@@ -577,8 +677,18 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     if [ $tpmodel -eq 0 ]; then 
 
 	bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
-	echo
+	echo ""
 	echo "Bending ground state energy bE0 = $bE0"
+	check=`grep -i -w  bE0 ${jobid}.log | awk '{printf $1}'`
+	if [ -z "$check" ]; then
+	    echo "bE0 $bE0" >> ${jobid}.log
+	fi
+    #1d+nd
+    elif [ $tpmodel -eq 2 ]; then 
+
+	bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
+	echo ""
+	echo "mult-mode vibrational ground state energy bE0 = $bE0"
 	check=`grep -i -w  bE0 ${jobid}.log | awk '{printf $1}'`
 	if [ -z "$check" ]; then
 	    echo "bE0 $bE0" >> ${jobid}.log
@@ -669,7 +779,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     for (( i=0 ; i < ${nvc} ; i++ )); do
 
 	#2d+1d like run
-	if [ $tpmodel -eq 0 ]; then 
+	if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then 
 	    Evc[$i]=`sed -n "/from final state/,/Spectrum/p" fc_0vc.out | grep "|     $i        |" | awk '{printf $4}'`
 	    shift[$i]=$(awk "BEGIN {print -${Evc[$i]} }")
 	    echo
@@ -728,7 +838,7 @@ EOF
     cd $rdir
 
     #2d+1d like run
-    if [ $tpmodel -eq 0 ]; then
+    if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ] ; then
 	echo "Running parallel |Phi(0)> calculation for Bending $i"
     #1d or 2D run
     elif [ $tpmodel -eq 1 ]; then 
@@ -815,6 +925,23 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fin" ] || [ "$runtype" == "-cfi
     elif [ $tpmodel -eq 1 ]; then 
 	nvc=1
 	nvf=1
+    elif [ $tpmodel -eq 2 ]; then 
+	nmodes=$(echo $dim_fc | sed 's/[^0-9]*//g')
+	nvc=1
+	nvf=1
+	for (( i=0; i<nmodes; i++ ))
+	do
+	    # potential files
+	    cc=$(echo $i + 2 | bc)
+	    fc_nvc_wk=`grep -i -w fc_nvc $input | awk -v col=$cc '{printf $col}'`
+	    fc_nvf_wk=`grep -i -w fc_nvf $input | awk -v col=$cc '{printf $col}'`
+	    nvc=$(echo "$nvc * $fc_nvc_wk" | bc)
+	    nvf=$(echo "$nvf * $fc_nvf_wk" | bc)
+	done    
+	nvc_negl=`grep -i -w neglected fc_0vc.out | awk '{printf $2}'`
+	nvc=$(echo "$nvc - $nvc_negl" | bc)
+	echo '(FC) total number of intermediate vibrational states: ' $nvc
+	echo '(FC) total number of final vibrational states: ' $nvf
     fi
 
 
@@ -1017,6 +1144,23 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
     elif [ $tpmodel -eq 1 ]; then 
 	nvc=1
 	nvf=1
+    elif [ $tpmodel -eq 2 ]; then 
+	nmodes=$(echo $dim_fc | sed 's/[^0-9]*//g')
+	nvc=1
+	nvf=1
+	for (( i=0; i<nmodes; i++ ))
+	do
+	    # potential files
+	    cc=$(echo $i + 2 | bc)
+	    fc_nvc_wk=`grep -i -w fc_nvc $input | awk -v col=$cc '{printf $col}'`
+	    fc_nvf_wk=`grep -i -w fc_nvf $input | awk -v col=$cc '{printf $col}'`
+	    nvc=$(echo "$nvc * $fc_nvc_wk" | bc)
+	    nvf=$(echo "$nvf * $fc_nvf_wk" | bc)
+	done  
+	nvc_negl=`grep -i -w neglected fc_0vc.out | awk '{printf $2}'`
+	nvc=$(echo "$nvc - $nvc_negl" | bc)
+	echo '(FC) total number of intermediate vibrational states: ' $nvc
+	echo '(FC) total number of final vibrational states: ' $nvf
     fi
 
     work=`grep -i -w detun ${jobid}.log | awk '{printf $1}'`
@@ -1031,7 +1175,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
 
     for ((i=0 ; i < $nvf ; i++)); do
 	#2d+1d like run
-	if [ $tpmodel -eq 0 ]; then 
+	if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ] ; then 
 	    Evf=`sed -n "/from final state/,/Spectrum/p" fc_vcvf.out | grep "|     $i        |" | awk '{printf $4}'`
 	    echo $Evf >> Evf.dat
 	#1d or 2D run
@@ -1044,7 +1188,7 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
     Evf=`cat Evf.dat | awk '{printf $1" "}'`
     rm Evf.dat
 
-    if [ $tpmodel -eq 0 ]; then 
+    if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then 
 	echo "Final bending energies " $Evf
     fi
 
@@ -1062,10 +1206,10 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cross" ]; then
 	detunau=$(awk "BEGIN {print $detun / 27.2114}")
 
 	omega=$(awk "BEGIN {print $omres + $detunau}")
-	shift=$(awk "BEGIN {print $Vgf_gap + $E0tot }")
+	shift=$(awk "BEGIN {print -$Vgf_gap + $E0tot }")
 	#------------------------------------
 	#2d+1d like run
-	if [ $tpmodel -eq 0 ]; then 
+	if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then 
 	    cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat
 	    cat  fc_vcvf.dat | awk '{printf $1" \n"}' >> fcond.dat
 	    cat intens_$detun.dat | awk '{printf $2" \n"}' >> fcond.dat
@@ -1109,23 +1253,6 @@ EOF
 	echo "# spectrum as function of energy loss E - E', omega= $omega " > ${jobid}_${detun}_Eloss.spec
 	sed -n "/> RIXS spectrum as function of energy loss/,/# End of Calculation/p" ${jobid}-final_csection_$detun.out | sed "/#/ d" | sed "/--/ d" | sed "/RIXS/ d" | sed "/(eV)/ d" | sed '/^\s*$/d' | awk '{printf $1" "$2"\n"}' >> ${jobid}_${detun}_Eloss.spec
 
-	# if [ "$doshift"=="y" ]; then
-	#     echo "shifting spectrum, omega=$omega eV"
-	#     shift=`awk "BEGIN {print $omega -$Vgf_gap + $bE0}"`
-	#     while read x y discard; do
-	# 	w=$(awk "BEGIN {print $shift - $x}")
-	# 	Int=$(awk "BEGIN {print $y}")
-	# 	#Int=$(awk "BEGIN {print $norm * $y}")
-	# 	echo "$w $Int" >> ${jobid}_$detun.spec
-	#     done < temp
-	#     #cat temp | awk '{printf $1" "$2"\n"}' > bkp-${jobid}_$detun.spec
-	#     #cat temp | awk "BEGIN {printf $shift - $1}" >> ${jobid}_$detun.spec
-	# else
-	#     cat temp | awk '{printf $1" "$2"\n"}' > ${jobid}_$detun.spec   
-	# fi
-	
-	#rm temp
-
 	echo
 	echo "Final spectrum saved to ${jobid}_$detun.spec and ${jobid}_${detun}_Eloss.spec"
 	echo
@@ -1165,6 +1292,23 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
     elif [ $tpmodel -eq 1 ]; then 	
 	nvc='1'
 	nvf='1'
+    elif [ $tpmodel -eq 2 ]; then 
+	nmodes=$(echo $dim_fc | sed 's/[^0-9]*//g')
+	nvc=1
+	nvf=1
+	for (( i=0; i<nmodes; i++ ))
+	do
+	    # potential files
+	    cc=$(echo $i + 2 | bc)
+	    fc_nvc_wk=`grep -i -w fc_nvc $input | awk -v col=$cc '{printf $col}'`
+	    fc_nvf_wk=`grep -i -w fc_nvf $input | awk -v col=$cc '{printf $col}'`
+	    nvc=$(echo "$nvc * $fc_nvc_wk" | bc)
+	    nvf=$(echo "$nvf * $fc_nvf_wk" | bc)
+	done  
+	nvc_negl=`grep -i -w neglected fc_0vc.out | awk '{printf $2}'`
+	nvc=$(echo "$nvc - $nvc_negl" | bc)
+	echo '(FC) total number of intermediate vibrational states: ' $nvc
+	echo '(FC) total number of final vibrational states: ' $nvf
     fi
     
     corr_np=`cat -n xas-fcorrel.dat | tail -1 | awk '{printf $1}'`
@@ -1173,10 +1317,10 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
 	rm Evc.dat
     fi
 
-    for ((i=0 ; i < $nvf ; i++)); do
+    for ((i=0 ; i < $nvc ; i++)); do
 	
 	#2d+1d like run
-	if [ $tpmodel -eq 0 ]; then
+	if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then
 	    Evc=`sed -n "/from final state/,/Spectrum/p" fc_0vc.out | grep "|     $i        |" | awk '{printf $4}'`
 	    echo $Evc >> Evc.dat
 	#1d or 2D run
@@ -1190,7 +1334,7 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
     Evc=`cat Evc.dat | awk '{printf $1" "}'`
     rm Evc.dat
 
-    if [ $tpmodel -eq 0 ]; then
+    if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ] ; then
 	echo "Core-excited bending energies " $Evc "(a.u.)"
     fi
 
@@ -1240,7 +1384,7 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
     fi
     #------- bending |0> energy
     #2d+1d like run
-    if [ $tpmodel -eq 0 ]; then 
+    if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then 
 
 	bE0=`sed -n "/the initial state/,/End of file/p" fc_0vc.out | grep "|     0        |" | awk '{printf $4}'`
 	echo
@@ -1284,7 +1428,7 @@ if [ "$runtype" == "-xas" ] || [ "$runtype" == "-xascs" ]; then
 
     
     #2d+1d like run
-    if [ $tpmodel -eq 0 ]; then 
+    if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then 
 	cat  fc_0vc.dat | awk '{printf $1" \n"}' > fcond.dat #FOR XAS WE ONLY NEED GROUND->CORE FC FACTORS
     #1d or 2D run
     elif [ $tpmodel -eq 1 ]; then 
@@ -1388,7 +1532,7 @@ if [ "$runtype" == "-self" ]; then
 	detunau=$(awk "BEGIN {print $detun / 27.2114}")
 
 	omega=$(awk "BEGIN {print $omres + $detunau}")
-	shift=$(awk "BEGIN {print $Vgf_gap + $E0tot }")
+	shift=$(awk "BEGIN {print -$Vgf_gap + $E0tot }")
 	#------------------------------------
 
 	if [ -f ${jobid}_$detun.spec ]; then

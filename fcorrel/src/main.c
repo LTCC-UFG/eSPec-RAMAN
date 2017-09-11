@@ -29,7 +29,7 @@ Goiania, 01st of February of 2015
 #define Me    9.10938188E-31 //mass of electron in Kg
 #define FSAU(x) (x)*41.3413745758e+0 ///0.024189E+0 //fs to au units of time conversion                        mtrxdiag_ (char *dim, int *il, int *iu, int *info, int *mxdct, int *n, double *abstol, int *iwork, int *np, double *eigvl, double *shm, double *vpot, double *work, double *wk, double *eigvc);
 
-int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype,char *jobnam, int *nfunc, char *funam,int *nvc,int *nvf,double *Evf,double *Evc,char *fcnam, char *fcornam, double *Delta,double *shift, char *rexfnam, char *xasfnam, int *nxas, int *nrexs, double *omega);
+int rdinput(FILE *arq,char *dim,int *np,char *file,int *stfil,int *endfil, double *ti, double *tf, double *pti, double *ptf, double *pstept, double *m,char *potfile, int *nf,int *twopow, double *width, int *nEf,double *Ef, int *type, double *crosst,char *windtype,char *jobnam, int *nfunc, char *funam,int *nvc,int *nvf,double **Evf,double **Evc,char *fcnam, char *fcornam, double *Delta,double *shift, char *rexfnam, char *xasfnam, int *nxas, int *nrexs, double *omega);
 
 void readallspl(char *file,int *iflth,double *X,double *Y,double *T,double *bcoefRe,double *bcoefIm,double *xknot,double *yknot,double *tknot, int *np, int *nf, int *kx, int *stfil, char *dim);
   
@@ -42,7 +42,7 @@ int main(){
   double norm,t,s;
   double ti,tf,pti,ptf,pstept,xi,xf,yi,yf,stept,sh[3],width,potshift,stepw,stepz,Delta;
   double *X,*Y,*T,rmse,xwork,*W,*Z,mem,Ereso,*FCGVc,**FCVcVf,*intens;
-  double m[3],x,y,pk,pki,pkf,steppk,ansk,val[5],FC,Evf[20],Evc[20];
+  double m[3],x,y,pk,pki,pkf,steppk,ansk,val[5],FC,*Evf,*Evc;
   char axis,file[30],potfile[30],wp_Enam[20],num[20],dim[6],windtype[10],fnam[20],fnam2[20],funam[20],jobnam[50];
   char fcnam[20],fcornam[20];
   FILE *arq=fopen("correl.inp","r");
@@ -97,7 +97,7 @@ int main(){
   printf("Reading input parameters...\n\n");
 
   //--- Read Input File
-  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&nEf,Ef,&type,&crosst,windtype,jobnam,&nfunc,funam,&nvc,&nvf,Evf,Evc,fcnam,fcornam,&Delta,&shift,rexfnam,xasfnam,&nxas,&nrexs,&omega);
+  rdinput(arq,dim,np,file,&stfil,&endfil,&ti,&tf,&pti,&ptf,&pstept,m,potfile,&nf,&twopow,&width,&nEf,Ef,&type,&crosst,windtype,jobnam,&nfunc,funam,&nvc,&nvf,&Evf,&Evc,fcnam,fcornam,&Delta,&shift,rexfnam,xasfnam,&nxas,&nrexs,&omega);
   fclose(arq);
   //-----
 

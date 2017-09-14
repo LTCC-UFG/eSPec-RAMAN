@@ -117,7 +117,7 @@ def all_franck_condon(x,u,w,dipole=None):
     n=u.shape[1]
     m=w.shape[1]
 
-    if(dipole == None):
+    if(dipole is None):
         dipole = np.ones(x.shape,dtype=float)
 
     fc=np.zeros((n,m),dtype=float)
@@ -207,6 +207,11 @@ def read_all_pot(nmodes, fc_init_pot,fc_decay_pot,fc_fin_pot):
         R[i],Vd[i]=np.genfromtxt(fc_decay_pot[i],skip_header=1,unpack=True,dtype=float)
         R[i],Vf[i]=np.genfromtxt(fc_fin_pot[i],skip_header=1,unpack=True,dtype=float)
     return R,Vg,Vd,Vf
+
+#----------------------------------------------------
+def read_dipole(fnam):
+    r_dip,dip=np.genfromtxt(fnam,skip_header=1,unpack=True,dtype=float)
+    return dip
 
 #----------------------------------------------------
 def plot_all_pot(nmodes,R,Vg,Vd,Vf):
@@ -335,6 +340,8 @@ def get_multd_fc(nmodes,inp_file,thsh=1e-8):
     fc_init_pot=[]
     fc_decay_pot=[]
     fc_fin_pot=[]
+    fc_dipole=[]
+    dip=False
 
     f_inp=open(inp_file,'r')
     for line in f_inp:
@@ -356,6 +363,10 @@ def get_multd_fc(nmodes,inp_file,thsh=1e-8):
         elif 'fc_fin_pot' in line:
             for i in range(nmodes):
                 fc_fin_pot.append(line.split()[i+1])
+        elif 'fc_dipole' in line:
+            dip=True
+            for i in range(nmodes):
+                fc_dipole.append(line.split()[i+1])
     # print(mass);print(fc_nvc);print(fc_nvf);print(fc_init_pot);print(fc_decay_pot);print(fc_fin_pot)
 
     # Here we read the potentials from the files
@@ -373,9 +384,16 @@ def get_multd_fc(nmodes,inp_file,thsh=1e-8):
     e_g=np.zeros(nmodes,dtype=float)
     e_c=np.zeros((nmodes,fc_nvc.max()),dtype=float)
     e_f=np.zeros((nmodes,fc_nvf.max()),dtype=float)
-    for i in range(nmodes):
-        fc_0vc[i,0:fc_nvc[i]],fc_vcvf[i,0:fc_nvc[i],0:fc_nvf[i]],e_g[i],e_c[i,0:fc_nvc[i]],e_f[i,0:fc_nvf[i]]=\
-        compute_1d_fc(mass[i],R[i],V_g[i],V_c[i],V_f[i],fc_nvc[i],fc_nvf[i])
+    if(dip==False):
+        for i in range(nmodes):
+            fc_0vc[i,0:fc_nvc[i]],fc_vcvf[i,0:fc_nvc[i],0:fc_nvf[i]],e_g[i],e_c[i,0:fc_nvc[i]],e_f[i,0:fc_nvf[i]]=\
+            compute_1d_fc(mass[i],R[i],V_g[i],V_c[i],V_f[i],fc_nvc[i],fc_nvf[i])
+    elif(dip==True):
+        for i in range(nmodes):
+            dip=read_dipole(fc_dipole[i])
+            fc_0vc[i,0:fc_nvc[i]],fc_vcvf[i,0:fc_nvc[i],0:fc_nvf[i]],e_g[i],e_c[i,0:fc_nvc[i]],e_f[i,0:fc_nvf[i]]=\
+            compute_1d_fc(mass[i],R[i],V_g[i],V_c[i],V_f[i],fc_nvc[i],fc_nvf[i],dipole=dip)
+
     #------------------------------------------------------------------------------------------------------------
     
     # print computed 1d fc amplitudes

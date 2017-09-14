@@ -250,6 +250,21 @@ else
     dip_df="y"
 fi
 
+#-------------------------------------------------------------
+ini_fourier=`grep -i -w ini_fourier $input | awk '{printf $2}'`
+if [ -z $ini_fourier ]; then
+    ini_fourier=14
+else
+    echo 'changing number fo printed time dependent wave packets (initial propagation) to 2^'$ini_fourier
+fi
+#-------------------------------------------------------------
+fin_fourier=`grep -i -w fin_fourier $input | awk '{printf $2}'`
+if [ -z $fin_fourier ]; then
+    fin_fourier=14
+else
+    echo 'changing number fo printed time dependent wave packets (initial propagation) to 2^'$ini_fourier
+fi
+
 #---------------Initial Propagation---------------#
 
 
@@ -556,6 +571,13 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fc" ] || [ "$runtype" == "-xas"
 	echo "nvc : ${fc_nvc[$i]}"
 	echo "nvf : ${fc_nvf[$i]}"
 	echo "potentials:  ${fc_init_pot[$i]}, ${fc_decay_pot[$i]}, ${fc_fin_pot[$i]}"
+	#------
+	# check for transition dipole moments
+	chk=`grep -i -w fc_dipole $input | awk '{printf $1}'`
+	if [ ! -z $chk ]; then
+	    fc_dipole[$i]=`grep -i -w fc_dipole $input | awk -v col=$cc '{printf $col}'`
+	    echo "dipoles: ${fc_dipole[$i]}"
+	fi
 	echo
     done
 

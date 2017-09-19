@@ -265,6 +265,12 @@ else
     echo 'changing number fo printed time dependent wave packets (initial propagation) to 2^'$ini_fourier
 fi
 
+# for parallel run (this will help reduce memory requirements
+n_cores=`grep -i -w  n_cores $input | awk '{printf $2}'`
+if [ -z $n_cores ]; then
+    n_cores=100
+fi
+
 #---------------Initial Propagation---------------#
 
 
@@ -798,7 +804,10 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-cond" ] || [ "$runtype" == "-cf
     fi
    
  ## -------------- Loop for bending modes ----------------   
+    k=0
     for (( i=0 ; i < ${nvc} ; i++ )); do
+	
+	k=$(echo "$k +1" | bc)
 
 	#2d+1d like run
 	if [ $tpmodel -eq 0 ] || [ $tpmodel -eq 2 ]; then 
@@ -870,13 +879,19 @@ EOF
     time $raman > ${jobid}_raman_Evc$i.out &
     cd ../ 
 
+    if [ "$k" == "$n_cores" ];
+    then
+	wait
+	k=0
+    fi
+
     done # End parallel loop
     wait
 
     for (( i=0 ; i < ${nvc} ; i++ )); do
 	
 	rdir=${jobid}-cond-vc${i}
-
+	
         # this had a problem with ${jobid} with _ in the name
 	#all_detunings_files=`ls $rdir/wp_* | cat | cut  -f2 -d"_" | sed "s/.dat//" | awk '{printf $1" "}'`
 	all_detunings_files=`grep -i -w detuning: $rdir/${jobid}_raman_Evc$i.out | sed 's/detuning://'`
@@ -977,8 +992,9 @@ if [ "$runtype" == "-all" ] || [ "$runtype" == "-fin" ] || [ "$runtype" == "-cfi
 	    rm fcorrel_$detun.dat
 	fi
 
+	k=0
 	for ((i=0 ; i < $nvc ; i++));  do  
-
+	    k=$(echo "$k +1" | bc)
 	    echo "running vc $i and detuning = $detun"
 
 	    file=wp-vc${i}_${detun}.dat
@@ -1056,6 +1072,13 @@ EOF
         echo "Running vc $i in background"
 	    time $espec > ${jobid}_vc${i}_$detun.out &
         cd ../
+	
+	if [ "$k" == "$n_cores" ];
+	then
+	    wait
+	    k=0
+	fi
+
     done
     wait
     echo "All finished!"
@@ -1063,8 +1086,10 @@ EOF
     echo
     echo "computing correlation functions"
     echo
-
+    
+    k=0
     for ((i=0 ; i < $nvc ; i++));  do   
+	k=$(echo "$k+1" | bc)
 
         cd fin_vc${i}_$detun 
 
@@ -1097,6 +1122,13 @@ EOF
         echo "Running fcorrel in Background for vc $i"
 	time $fcorrel > ${jobid}-correl_vc${i}_$detun.out &
         cd ../
+
+	if [ "$k" == "$n_cores" ];
+	then
+	    wait
+	    k=0
+	fi
+
     done
     wait
 

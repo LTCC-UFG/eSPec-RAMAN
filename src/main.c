@@ -63,7 +63,7 @@ int main(){
   clock_t begint,endt;
   double timediff;
   FILE *wp_E,*wp2_E;
-
+  char buffer[300];
 
   //--- Default values
   sprintf(jobnam,"default_jobname");
@@ -151,6 +151,7 @@ int main(){
     printf("\n Transition operator will be read from file %s \n",qfnam);
     fqop=fopen(qfnam,"r");
     dipole=malloc(np[0]*np[1]*sizeof(double));
+    fgets(buffer, 300, fqop);
     //read dipole moments
     for(i=0;i<np[1];i++){
       if( strncasecmp(dim,".2D",3)==0 ) fscanf(fqop,"%lf",&xwork);
